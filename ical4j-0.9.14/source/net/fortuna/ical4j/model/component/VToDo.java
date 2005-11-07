@@ -43,6 +43,7 @@ import net.fortuna.ical4j.model.Dur;
 import net.fortuna.ical4j.model.Property;
 import net.fortuna.ical4j.model.PropertyList;
 import net.fortuna.ical4j.model.ValidationException;
+import net.fortuna.ical4j.model.filter.OutputFilter;
 import net.fortuna.ical4j.model.property.DtStamp;
 import net.fortuna.ical4j.model.property.DtStart;
 import net.fortuna.ical4j.model.property.Due;
@@ -198,6 +199,29 @@ public class VToDo extends Component {
         buffer.append("\r\n");
         buffer.append(getProperties());
         buffer.append(getAlarms());
+        buffer.append(END);
+        buffer.append(':');
+        buffer.append(getName());
+        buffer.append("\r\n");
+        return buffer.toString();
+    }
+
+	/**
+	 * Write the component to a string filtering the properties and
+	 * sub-components according to the supplied filter.
+	 * 
+	 * @param filter
+	 *            filter to use.
+	 * @return iCalendar data written.
+	 */
+	public String toString(OutputFilter filter) {
+		StringBuffer buffer = new StringBuffer();
+		buffer.append(BEGIN);
+		buffer.append(':');
+		buffer.append(getName());
+		buffer.append("\r\n");
+		buffer.append(getProperties().toString(filter));
+		buffer.append(getAlarms().toString(filter));
         buffer.append(END);
         buffer.append(':');
         buffer.append(getName());

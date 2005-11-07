@@ -223,6 +223,22 @@ public abstract class Property extends Content {
         return buffer.toString();
     }
 
+	/**
+	 * Write the property to a string without writing out the actual value data.
+	 * This is used when filtering the output.
+	 * 
+	 * @return string containing iCalendar data written out.
+	 */
+	public final String toStringNoValue() {
+		StringBuffer buffer = new StringBuffer();
+		buffer.append(getName());
+		buffer.append(getParameters());
+		buffer.append(':');
+        buffer.append("\r\n");
+
+        return buffer.toString();
+    }
+
     /**
      * Indicates whether this property is a
      * calendar property.

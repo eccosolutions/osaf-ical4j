@@ -51,6 +51,7 @@ import net.fortuna.ical4j.model.PropertyList;
 import net.fortuna.ical4j.model.Recur;
 import net.fortuna.ical4j.model.UtcOffset;
 import net.fortuna.ical4j.model.ValidationException;
+import net.fortuna.ical4j.model.filter.OutputFilter;
 import net.fortuna.ical4j.model.WeekDay;
 import net.fortuna.ical4j.model.property.DtStart;
 import net.fortuna.ical4j.model.property.RRule;
@@ -196,6 +197,30 @@ public class VTimeZone extends Component {
     public final String toString() {
         return BEGIN + ":" + getName() + "\r\n" + getProperties() + types + END
                 + ":" + getName() + "\r\n";
+    }
+
+	/**
+	 * Write the component to a string filtering the properties and
+	 * sub-components according to the supplied filter.
+	 * 
+	 * @param filter
+	 *            filter to use.
+	 * @return iCalendar data written.
+	 */
+	public String toString(OutputFilter filter) {
+		StringBuffer buffer = new StringBuffer();
+		buffer.append(BEGIN);
+		buffer.append(':');
+		buffer.append(getName());
+		buffer.append("\r\n");
+		buffer.append(getProperties().toString(filter));
+		buffer.append(getTypes().toString(filter));
+		buffer.append(END);
+		buffer.append(':');
+		buffer.append(getName());
+		buffer.append("\r\n");
+
+		return buffer.toString();
     }
 
     /*

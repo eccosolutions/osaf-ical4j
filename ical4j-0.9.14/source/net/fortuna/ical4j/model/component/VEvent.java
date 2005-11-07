@@ -47,6 +47,7 @@ import net.fortuna.ical4j.model.PeriodList;
 import net.fortuna.ical4j.model.Property;
 import net.fortuna.ical4j.model.PropertyList;
 import net.fortuna.ical4j.model.ValidationException;
+import net.fortuna.ical4j.model.filter.OutputFilter;
 import net.fortuna.ical4j.model.parameter.Value;
 import net.fortuna.ical4j.model.property.DtEnd;
 import net.fortuna.ical4j.model.property.DtStamp;
@@ -294,6 +295,30 @@ public class VEvent extends Component {
 
         return BEGIN + ":" + getName() + "\r\n" + getProperties() + getAlarms()
                 + END + ":" + getName() + "\r\n";
+	}
+
+	/**
+	 * Write the component to a string filtering the properties and
+	 * sub-components according to the supplied filter.
+	 * 
+	 * @param filter
+	 *            filter to use.
+	 * @return iCalendar data written.
+	 */
+	public String toString(OutputFilter filter) {
+		StringBuffer buffer = new StringBuffer();
+		buffer.append(BEGIN);
+		buffer.append(':');
+		buffer.append(getName());
+		buffer.append("\r\n");
+		buffer.append(getProperties().toString(filter));
+		buffer.append(getAlarms().toString(filter));
+		buffer.append(END);
+		buffer.append(':');
+		buffer.append(getName());
+		buffer.append("\r\n");
+
+		return buffer.toString();
     }
 
     /**

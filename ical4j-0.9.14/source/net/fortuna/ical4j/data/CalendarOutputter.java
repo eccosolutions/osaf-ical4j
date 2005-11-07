@@ -41,6 +41,7 @@ import java.nio.charset.Charset;
 
 import net.fortuna.ical4j.model.Calendar;
 import net.fortuna.ical4j.model.ValidationException;
+import net.fortuna.ical4j.model.filter.OutputFilter;
 
 /**
  * Writes an iCalendar model to an output stream.
@@ -119,8 +120,37 @@ public class CalendarOutputter {
         try {
 
             writer.write(calendar.toString());
-        }
-        finally {
+		} finally {
+
+			writer.close();
+		}
+	}
+
+	/**
+	 * Outputs an iCalender string to the specified writer.
+	 * 
+	 * @param calendar
+	 *            calendar to write to writer
+	 * @param out
+	 *            a writer
+	 * @param filter
+	 *            an output filter
+	 * @throws IOException
+	 *             thrown when unable to write to writer
+	 */
+	public final void output(final Calendar calendar, final Writer out,
+			final OutputFilter filter) throws IOException, ValidationException {
+
+		if (isValidating()) {
+			calendar.validate();
+		}
+
+		FoldingWriter writer = new FoldingWriter(out, foldLength);
+
+		try {
+
+			writer.write(calendar.toString(filter));
+		} finally {
 
             writer.close();
         }

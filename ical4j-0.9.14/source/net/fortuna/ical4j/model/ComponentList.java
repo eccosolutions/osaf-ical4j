@@ -37,6 +37,8 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Iterator;
 
+import net.fortuna.ical4j.model.filter.OutputFilter;
+
 /**
  * Defines a list of iCalendar components.
  *
@@ -62,8 +64,38 @@ public class ComponentList extends ArrayList implements Serializable {
         StringBuffer buffer = new StringBuffer();
         for (Iterator i = iterator(); i.hasNext();) {
             buffer.append(i.next().toString());
+		}
+		return buffer.toString();
+	}
+
+	/**
+	 * Write the component list to a string filtering the components according
+	 * to the supplied filter.
+	 * 
+	 * @param filter
+	 *            filter to use.
+	 * @return iCalendar data written.
+	 */
+	public final String toString(OutputFilter filter) {
+
+		// Short cut for all components
+		if (filter.isAllSubComponents())
+			return toString();
+		else if (filter.hasSubComponentFilters()) {
+			StringBuffer buffer = new StringBuffer();
+			for (Iterator i = iterator(); i.hasNext();) {
+				// Test each property to see whether it is in the filter
+				Component c = (Component) i.next();
+				OutputFilter subfilter = filter.getSubComponentFilter(c);
+
+				// Check whether to write it out
+				if (subfilter != null) {
+					buffer.append(c.toString(subfilter));
+				}
         }
         return buffer.toString();
+		} else
+			return "";
     }
 
     /**

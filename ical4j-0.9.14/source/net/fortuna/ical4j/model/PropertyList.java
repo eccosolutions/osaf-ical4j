@@ -37,6 +37,8 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Iterator;
 
+import net.fortuna.ical4j.model.filter.OutputFilter;
+
 /**
  * Defines a list of iCalendar properties.
  *
@@ -64,6 +66,41 @@ public class PropertyList extends ArrayList implements Serializable {
             buffer.append(i.next().toString());
         }
         return buffer.toString();
+    }
+
+    /**
+	 * Write the property list to a string filtering the properties according to
+	 * the supplied filter.
+	 * 
+	 * @param filter		filter to use.
+	 * @return			iCalendar data written.
+	 */
+	public final String toString(OutputFilter filter) {
+
+		// Short cut for all properties
+		if (filter.isAllProperties())
+			return toString();
+		else if (filter.hasPropertyFilters()) {
+			StringBuffer buffer = new StringBuffer();
+			for (Iterator i = iterator(); i.hasNext();) {
+				// Test each property to see whether it is in the filter
+				Property p = (Property) i.next();
+				boolean[] filterit = filter.testPropertyValue(p.getName());
+
+				// Check whether to write it out
+				if (filterit[0]) {
+					// Check whether no-value is set
+					if (filterit[1]) {
+						// Write without the value
+						buffer.append(p.toStringNoValue());
+					} else {
+						buffer.append(p.toString());
+					}
+				}
+			}
+			return buffer.toString();
+		} else
+			return "";
     }
 
     /**

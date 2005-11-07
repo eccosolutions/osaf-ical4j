@@ -36,6 +36,8 @@ package net.fortuna.ical4j.model;
 import java.io.Serializable;
 import java.util.Iterator;
 
+import net.fortuna.ical4j.model.filter.OutputFilter;
+
 /**
  * Defines an iCalendar component. Subclasses of this class provide additional
  * validation and typed values for specific iCalendar components.
@@ -93,6 +95,28 @@ public abstract class Component implements Serializable {
         buffer.append(getName());
         buffer.append("\r\n");
         buffer.append(getProperties());
+        buffer.append(END);
+        buffer.append(':');
+        buffer.append(getName());
+        buffer.append("\r\n");
+
+        return buffer.toString();
+    }
+
+	/**
+	 * Write the component to a string filtering the properties according to
+	 * the supplied filter.
+	 * 
+	 * @param filter		filter to use.
+	 * @return			iCalendar data written.
+	 */
+    public String toString(OutputFilter filter) {
+        StringBuffer buffer = new StringBuffer();
+        buffer.append(BEGIN);
+        buffer.append(':');
+        buffer.append(getName());
+        buffer.append("\r\n");
+        buffer.append(getProperties().toString(filter));
         buffer.append(END);
         buffer.append(':');
         buffer.append(getName());

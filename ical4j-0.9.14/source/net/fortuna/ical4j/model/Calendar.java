@@ -36,6 +36,7 @@ package net.fortuna.ical4j.model;
 import java.io.Serializable;
 import java.util.Iterator;
 
+import net.fortuna.ical4j.model.filter.OutputFilter;
 import net.fortuna.ical4j.model.component.VTimeZone;
 import net.fortuna.ical4j.model.parameter.TzId;
 import net.fortuna.ical4j.model.property.XProperty;
@@ -161,6 +162,29 @@ public class Calendar implements Serializable, TimeZoneProvider {
         buffer.append("\r\n");
         buffer.append(getProperties());
         buffer.append(getComponents());
+		buffer.append(END);
+		buffer.append(':');
+		buffer.append(VCALENDAR);
+		buffer.append("\r\n");
+
+		return buffer.toString();
+	}
+
+	/**
+	 * Write calendar component to string and filter the sub-components and
+	 * properties as requested.
+	 * 
+	 * @param filter		the filter to apply to the sub-components and properties.
+	 * @return			the iCalendar data written out.
+	 */
+	public final String toString(OutputFilter filter) {
+		StringBuffer buffer = new StringBuffer();
+		buffer.append(BEGIN);
+		buffer.append(':');
+		buffer.append(VCALENDAR);
+		buffer.append("\r\n");
+		buffer.append(getProperties().toString(filter));
+		buffer.append(getComponents().toString(filter));
         buffer.append(END);
         buffer.append(':');
         buffer.append(VCALENDAR);
