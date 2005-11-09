@@ -36,10 +36,12 @@ package net.fortuna.ical4j.model;
 import java.io.Serializable;
 import java.util.Iterator;
 
+import net.fortuna.ical4j.model.filter.OutputFilter;
+
 /**
  * Defines an iCalendar component. Subclasses of this class provide additional
  * validation and typed values for specific iCalendar components.
- *
+ * 
  * @author Ben Fortuna
  */
 public abstract class Component implements Serializable {
@@ -68,7 +70,9 @@ public abstract class Component implements Serializable {
 
     /**
      * Constructs a new component containing no properties.
-     * @param s a component name
+     * 
+     * @param s
+     *            a component name
      */
     protected Component(final String s) {
         this(s, new PropertyList());
@@ -77,8 +81,11 @@ public abstract class Component implements Serializable {
     /**
      * Constructor made protected to enforce the use of
      * <code>ComponentFactory</code> for component instantiation.
-     * @param s component name
-     * @param p a list of properties
+     * 
+     * @param s
+     *            component name
+     * @param p
+     *            a list of properties
      */
     protected Component(final String s, final PropertyList p) {
         this.name = s;
@@ -104,6 +111,29 @@ public abstract class Component implements Serializable {
     }
 
     /**
+     * Write the component to a string filtering the properties according to the
+     * supplied filter.
+     * 
+     * @param filter
+     *            filter to use.
+     * @return iCalendar data written.
+     */
+    public String toString(OutputFilter filter) {
+        StringBuffer buffer = new StringBuffer();
+        buffer.append(BEGIN);
+        buffer.append(':');
+        buffer.append(getName());
+        buffer.append("\r\n");
+        buffer.append(getProperties().toString(filter));
+        buffer.append(END);
+        buffer.append(':');
+        buffer.append(getName());
+        buffer.append("\r\n");
+
+        return buffer.toString();
+    }
+
+    /**
      * @return Returns the name.
      */
     public final String getName() {
@@ -111,17 +141,14 @@ public abstract class Component implements Serializable {
     }
 
     /**
-     * Indicates whether this component is a top-level
-     * calendar component.
+     * Indicates whether this component is a top-level calendar component.
+     * 
      * @return a boolean value
      */
     public final boolean isCalendarComponent() {
-        return VALARM.equals(getName())
-            || VEVENT.equals(getName())
-            || VFREEBUSY.equals(getName())
-            || VJOURNAL.equals(getName())
-            || VTIMEZONE.equals(getName())
-            || VTODO.equals(getName());
+        return VALARM.equals(getName()) || VEVENT.equals(getName())
+                || VFREEBUSY.equals(getName()) || VJOURNAL.equals(getName())
+                || VTIMEZONE.equals(getName()) || VTODO.equals(getName());
     }
 
     /**
@@ -133,6 +160,7 @@ public abstract class Component implements Serializable {
 
     /**
      * Perform validation on a component and its properties.
+     * 
      * @throws ValidationException
      *             where the component is not in a valid state
      */
@@ -142,15 +170,18 @@ public abstract class Component implements Serializable {
 
     /**
      * Perform validation on a component.
-     * @param recurse indicates whether to validate the component's
-     * properties
+     * 
+     * @param recurse
+     *            indicates whether to validate the component's properties
      * @throws ValidationException
      *             where the component is not in a valid state
      */
-    public abstract void validate(final boolean recurse) throws ValidationException;
+    public abstract void validate(final boolean recurse)
+            throws ValidationException;
 
     /**
      * Invoke validation on the component properties in its current state.
+     * 
      * @throws ValidationException
      *             where any of the component properties is not in a valid state
      */
@@ -162,8 +193,9 @@ public abstract class Component implements Serializable {
     }
 
     /**
-     * Two components are equal if and only if their
-     * name and property lists are equal.
+     * Two components are equal if and only if their name and property lists are
+     * equal.
+     * 
      * @see java.lang.Object#equals(java.lang.Object)
      */
     public final boolean equals(final Object arg0) {

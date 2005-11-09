@@ -42,7 +42,7 @@ import net.fortuna.ical4j.util.Strings;
 /**
  * Defines an iCalendar property. Subclasses of this class provide additional
  * validation and typed values for specific iCalendar properties.
- *
+ * 
  * @author Ben Fortuna
  */
 public abstract class Property extends Content {
@@ -170,6 +170,7 @@ public abstract class Property extends Content {
 
     /**
      * Constructor.
+     * 
      * @param aName
      *            property name
      */
@@ -180,6 +181,7 @@ public abstract class Property extends Content {
     /**
      * Constructor made protected to enforce the use of
      * <code>PropertyFactory</code> for property instantiation.
+     * 
      * @param aName
      *            property name
      * @param aList
@@ -189,16 +191,19 @@ public abstract class Property extends Content {
         this.name = aName;
         this.parameters = aList;
     }
-    
+
     /**
      * Creates a deep copy of the specified property. That is, the name,
      * parameter list, and value are duplicated from the specified property.
-     * This constructor should only be called from sub-classes to ensure
-     * type integrity is maintained.
-     * @param property a property to copy
+     * This constructor should only be called from sub-classes to ensure type
+     * integrity is maintained.
+     * 
+     * @param property
+     *            a property to copy
      * @throws URISyntaxException
      */
-    protected Property(final Property property) throws IOException, URISyntaxException, ParseException {
+    protected Property(final Property property) throws IOException,
+            URISyntaxException, ParseException {
         this.name = property.getName();
         this.parameters = new ParameterList(property.getParameters(), false);
         setValue(property.getValue());
@@ -214,8 +219,7 @@ public abstract class Property extends Content {
         buffer.append(':');
         if (this instanceof Escapable) {
             buffer.append(Strings.escape(Strings.valueOf(getValue())));
-        }
-        else {
+        } else {
             buffer.append(Strings.valueOf(getValue()));
         }
         buffer.append("\r\n");
@@ -224,8 +228,24 @@ public abstract class Property extends Content {
     }
 
     /**
-     * Indicates whether this property is a
-     * calendar property.
+     * Write the property to a string without writing out the actual value data.
+     * This is used when filtering the output.
+     * 
+     * @return string containing iCalendar data written out.
+     */
+    public final String toStringNoValue() {
+        StringBuffer buffer = new StringBuffer();
+        buffer.append(getName());
+        buffer.append(getParameters());
+        buffer.append(':');
+        buffer.append("\r\n");
+
+        return buffer.toString();
+    }
+
+    /**
+     * Indicates whether this property is a calendar property.
+     * 
      * @return boolean
      */
     public final boolean isCalendarProperty() {
@@ -235,8 +255,8 @@ public abstract class Property extends Content {
     }
 
     /**
-     * Indicates whether this property is a
-     * component property.
+     * Indicates whether this property is a component property.
+     * 
      * @return boolean
      */
     public final boolean isComponentProperty() {
@@ -257,19 +277,21 @@ public abstract class Property extends Content {
     public final ParameterList getParameters() {
         return parameters;
     }
-    
+
     /**
      * Sets the current value of the property.
-     * @param aValue a string representation of the property
-     * value
-     * @throws IOException possibly thrown by setting the value
-     * of certain properties
-     * @throws URISyntaxException possibly thrown by setting the value
-     * of certain properties
-     * @throws ParseException possibly thrown by setting the value
-     * of certain properties
+     * 
+     * @param aValue
+     *            a string representation of the property value
+     * @throws IOException
+     *             possibly thrown by setting the value of certain properties
+     * @throws URISyntaxException
+     *             possibly thrown by setting the value of certain properties
+     * @throws ParseException
+     *             possibly thrown by setting the value of certain properties
      */
-    public abstract void setValue(String aValue) throws IOException, URISyntaxException, ParseException;
+    public abstract void setValue(String aValue) throws IOException,
+            URISyntaxException, ParseException;
 
     /**
      * @return Returns the value.
@@ -278,7 +300,7 @@ public abstract class Property extends Content {
 
     /**
      * Perform validation on a property.
-     *
+     * 
      * @throws ValidationException
      *             where the property is not in a valid state
      */
@@ -292,16 +314,17 @@ public abstract class Property extends Content {
      * @see java.lang.Object#equals(java.lang.Object)
      */
     /**
-     * Two properties are equal if and only if their
-     * name, value and parameter list are equal.
+     * Two properties are equal if and only if their name, value and parameter
+     * list are equal.
+     * 
      * @see java.lang.Object#equals(java.lang.Object)
      */
     public final boolean equals(final Object arg0) {
         if (arg0 instanceof Property) {
             Property p = (Property) arg0;
             return getName().equals(p.getName())
-                    && ((getValue() != null && getValue().equals(p.getValue()))
-                            || p.getValue() == null)
+                    && ((getValue() != null && getValue().equals(p.getValue())) || p
+                            .getValue() == null)
                     && getParameters().equals(p.getParameters());
         }
         return super.equals(arg0);
@@ -314,8 +337,7 @@ public abstract class Property extends Content {
      */
     public final int hashCode() {
         // as property name is case-insensitive generate hash for uppercase..
-        return getName().toUpperCase().hashCode()
-                + getValue().hashCode()
+        return getName().toUpperCase().hashCode() + getValue().hashCode()
                 + getParameters().hashCode();
     }
 }
