@@ -41,18 +41,19 @@ import java.nio.charset.Charset;
 
 import net.fortuna.ical4j.model.Calendar;
 import net.fortuna.ical4j.model.ValidationException;
+import net.fortuna.ical4j.model.filter.OutputFilter;
 
 /**
  * Writes an iCalendar model to an output stream.
- *
+ * 
  * @author Ben Fortuna
  */
 public class CalendarOutputter {
-    
+
     private static final Charset DEFAULT_CHARSET = Charset.forName("UTF-8");
 
     private boolean validating;
-    
+
     private int foldLength;
 
     /**
@@ -63,18 +64,20 @@ public class CalendarOutputter {
     }
 
     /**
-     * @param validating indicates whether to validate
-     * calendar when outputting to stream
+     * @param validating
+     *            indicates whether to validate calendar when outputting to
+     *            stream
      */
     public CalendarOutputter(final boolean validating) {
         this(validating, FoldingWriter.REDUCED_FOLD_LENGTH);
     }
 
     /**
-     * @param validating indicates whether to validate
-     * calendar when outputting to stream
-     * @param foldLength maximum number of characters before a line
-     * is folded
+     * @param validating
+     *            indicates whether to validate calendar when outputting to
+     *            stream
+     * @param foldLength
+     *            maximum number of characters before a line is folded
      */
     public CalendarOutputter(final boolean validating, final int foldLength) {
         this.validating = validating;
@@ -83,7 +86,7 @@ public class CalendarOutputter {
 
     /**
      * Outputs an iCalender string to the specified output stream.
-     *
+     * 
      * @param calendar
      *            calendar to write to ouput stream
      * @param out
@@ -99,7 +102,7 @@ public class CalendarOutputter {
 
     /**
      * Outputs an iCalender string to the specified writer.
-     *
+     * 
      * @param calendar
      *            calendar to write to writer
      * @param out
@@ -119,8 +122,37 @@ public class CalendarOutputter {
         try {
 
             writer.write(calendar.toString());
+        } finally {
+
+            writer.close();
         }
-        finally {
+    }
+
+    /**
+     * Outputs an iCalender string to the specified writer.
+     * 
+     * @param calendar
+     *            calendar to write to writer
+     * @param out
+     *            a writer
+     * @param filter
+     *            an output filter
+     * @throws IOException
+     *             thrown when unable to write to writer
+     */
+    public final void output(final Calendar calendar, final Writer out,
+            final OutputFilter filter) throws IOException, ValidationException {
+
+        if (isValidating()) {
+            calendar.validate();
+        }
+
+        FoldingWriter writer = new FoldingWriter(out, foldLength);
+
+        try {
+
+            writer.write(calendar.toString(filter));
+        } finally {
 
             writer.close();
         }
@@ -134,7 +166,8 @@ public class CalendarOutputter {
     }
 
     /**
-     * @param validating The validating to set.
+     * @param validating
+     *            The validating to set.
      */
     public final void setValidating(final boolean validating) {
         this.validating = validating;

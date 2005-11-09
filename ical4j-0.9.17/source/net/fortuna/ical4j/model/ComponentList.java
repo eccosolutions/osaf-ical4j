@@ -37,13 +37,15 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Iterator;
 
+import net.fortuna.ical4j.model.filter.OutputFilter;
+
 /**
  * Defines a list of iCalendar components.
- *
+ * 
  * @author Ben Fortuna
  */
 public class ComponentList extends ArrayList implements Serializable {
-    
+
     private static final long serialVersionUID = 7308557606558767449L;
 
     /**
@@ -51,10 +53,12 @@ public class ComponentList extends ArrayList implements Serializable {
      */
     public ComponentList() {
     }
-    
+
     /**
      * Creates a new instance with the specified initial capacity.
-     * @param initialCapacity the initial capacity of the list
+     * 
+     * @param initialCapacity
+     *            the initial capacity of the list
      */
     public ComponentList(final int initialCapacity) {
         super(initialCapacity);
@@ -72,10 +76,41 @@ public class ComponentList extends ArrayList implements Serializable {
     }
 
     /**
+     * Write the component list to a string filtering the components according
+     * to the supplied filter.
+     * 
+     * @param filter
+     *            filter to use.
+     * @return iCalendar data written.
+     */
+    public final String toString(OutputFilter filter) {
+
+        // Short cut for all components
+        if (filter.isAllSubComponents())
+            return toString();
+        else if (filter.hasSubComponentFilters()) {
+            StringBuffer buffer = new StringBuffer();
+            for (Iterator i = iterator(); i.hasNext();) {
+                // Test each property to see whether it is in the filter
+                Component c = (Component) i.next();
+                OutputFilter subfilter = filter.getSubComponentFilter(c);
+
+                // Check whether to write it out
+                if (subfilter != null) {
+                    buffer.append(c.toString(subfilter));
+                }
+            }
+            return buffer.toString();
+        } else
+            return "";
+    }
+
+    /**
      * Returns the first component of specified name.
-     * @param aName name of component to return
-     * @return a component or null if no matching component
-     * found
+     * 
+     * @param aName
+     *            name of component to return
+     * @return a component or null if no matching component found
      */
     public final Component getComponent(final String aName) {
         for (Iterator i = iterator(); i.hasNext();) {
@@ -89,7 +124,9 @@ public class ComponentList extends ArrayList implements Serializable {
 
     /**
      * Returns a list containing all components with specified name.
-     * @param name name of components to return
+     * 
+     * @param name
+     *            name of components to return
      * @return a list of components with the matching name
      */
     public final ComponentList getComponents(final String name) {
@@ -105,22 +142,26 @@ public class ComponentList extends ArrayList implements Serializable {
 
     /**
      * Add a component to the list.
-     * @param component the component to add
+     * 
+     * @param component
+     *            the component to add
      * @return true
      * @see List#add(java.lang.Object)
      */
     public final boolean add(final Component component) {
         return add((Object) component);
     }
-    
+
     /**
      * Overrides superclass to throw an <code>IllegalArgumentException</code>
      * where argument is not a <code>net.fortuna.ical4j.model.Component</code>.
+     * 
      * @see List#add(E)
      */
     public final boolean add(final Object arg0) {
         if (!(arg0 instanceof Component)) {
-            throw new IllegalArgumentException("Argument not a " + Component.class.getName());
+            throw new IllegalArgumentException("Argument not a "
+                    + Component.class.getName());
         }
         return super.add(arg0);
     }
@@ -129,21 +170,21 @@ public class ComponentList extends ArrayList implements Serializable {
      * @return boolean indicates if the list is empty
      * @see List#isEmpty()
      */
-//    public final boolean isEmpty() {
-//        return components.isEmpty();
-//    }
-
+    // public final boolean isEmpty() {
+    // return components.isEmpty();
+    // }
     /**
      * @return an iterator
      * @see List#iterator()
      */
-//    public final Iterator iterator() {
-//        return components.iterator();
-//    }
-
+    // public final Iterator iterator() {
+    // return components.iterator();
+    // }
     /**
      * Remove a component from the list.
-     * @param component the component to remove
+     * 
+     * @param component
+     *            the component to remove
      * @return true if the list contained the specified component
      * @see List#remove(java.lang.Object)
      */
@@ -155,16 +196,16 @@ public class ComponentList extends ArrayList implements Serializable {
      * @return the number of components in the list
      * @see List#size()
      */
-//    public final int size() {
-//        return components.size();
-//    }
-
+    // public final int size() {
+    // return components.size();
+    // }
     /**
-     * Provides a list containing all components contained
-     * in this component list.
+     * Provides a list containing all components contained in this component
+     * list.
+     * 
      * @return a list
      */
-//    public final List toList() {
-//        return new ArrayList(components);
-//    }
+    // public final List toList() {
+    // return new ArrayList(components);
+    // }
 }
