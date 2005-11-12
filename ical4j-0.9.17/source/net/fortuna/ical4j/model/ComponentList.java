@@ -106,6 +106,20 @@ public class ComponentList extends ArrayList implements Serializable {
     }
 
     /**
+     * Write component to string in special flat mode.
+     * 
+     * @param prefix
+     * @return
+     */
+    public final String toStringFlat(String prefix) {
+        StringBuffer buffer = new StringBuffer();
+        for (Iterator i = iterator(); i.hasNext();) {
+            buffer.append(((Component)i.next()).toStringFlat(prefix));
+        }
+        return buffer.toString();
+    }
+
+    /**
      * Returns the first component of specified name.
      * 
      * @param aName

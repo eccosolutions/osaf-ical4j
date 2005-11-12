@@ -194,6 +194,21 @@ public class Calendar implements Serializable {
     }
 
     /**
+     * Write calendar component to string using the special 'flat' format.
+     * 
+      * @return the iCalendar data written out.
+     */
+    public final String toStringFlat() {
+        StringBuffer buffer = new StringBuffer();
+        buffer.append(VCALENDAR);
+        buffer.append("\n");
+        buffer.append(getProperties().toStringFlat(VCALENDAR));
+        buffer.append(getComponents().toStringFlat(VCALENDAR));
+
+        return buffer.toString();
+    }
+
+    /**
      * @return Returns the components.
      */
     public final ComponentList getComponents() {

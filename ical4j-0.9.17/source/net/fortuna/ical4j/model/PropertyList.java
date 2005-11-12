@@ -112,6 +112,20 @@ public class PropertyList extends ArrayList implements Serializable {
     }
 
     /**
+     * Right all properties to string in special 'flat' format.
+     * 
+     * @param prefix
+     * @return
+     */
+    public final String toStringFlat(String prefix) {
+        StringBuffer buffer = new StringBuffer();
+        for (Iterator i = iterator(); i.hasNext();) {
+            buffer.append(((Property)i.next()).toStringFlat(prefix));
+        }
+        return buffer.toString();
+    }
+
+    /**
      * Returns the first property of specified name.
      * 
      * @param aName

@@ -159,6 +159,45 @@ public class CalendarOutputter {
     }
 
     /**
+     * Outputs an iCalender string to the specified writer.
+     * The iCalendar data is output in our special 'flat' format
+     * designed to make text indexing/searching easier within CalDAV.
+     * 
+     * The flat format flattens out component, property and parameter names
+     * into a single 'key' and the value of the property or parameter follows.
+     * 
+     * e.g.:
+     * 
+     * VCALENDAR-VEVENT
+     * VCALENDAR-VEVENT_ATTENDEE:mailto:joe@example.com
+     * VCALENDAR-VEVENT_ATTENDEE_PARTSTAT:RSVP
+     * 
+     * @param calendar
+     *            calendar to write to writer
+     * @param out
+     *            a writer
+     * @throws IOException
+     *             thrown when unable to write to writer
+     */
+    public final void outputFlat(final Calendar calendar, final Writer out)
+            throws IOException, ValidationException {
+
+        if (isValidating()) {
+            calendar.validate();
+        }
+
+        FoldingWriter writer = new FoldingWriter(out, foldLength);
+
+        try {
+
+            writer.write(calendar.toStringFlat());
+        } finally {
+
+            writer.close();
+        }
+    }
+
+    /**
      * @return Returns the validating.
      */
     public final boolean isValidating() {

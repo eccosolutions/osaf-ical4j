@@ -336,6 +336,23 @@ public class VEvent extends Component {
     }
 
     /**
+     * Write component to string using special flat format.
+     * 
+     * @param prefix
+     * @return
+     */
+    public String toStringFlat(String prefix) {
+        StringBuffer buffer = new StringBuffer();
+        String newPrefix = prefix + "-" + getName();
+        buffer.append(newPrefix);
+        buffer.append("\n");
+        buffer.append(getProperties().toStringFlat(newPrefix));
+        buffer.append(getAlarms().toStringFlat(newPrefix));
+
+        return buffer.toString();
+    }
+
+    /**
      * @see net.fortuna.ical4j.model.Component#validate(boolean)
      */
     public final void validate(final boolean recurse)
