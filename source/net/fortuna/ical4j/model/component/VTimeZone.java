@@ -190,6 +190,23 @@ public class VTimeZone extends Component {
         return buffer.toString();
     }
 
+    /**
+     * Write component to string using special flat format.
+     * 
+     * @param prefix
+     * @return
+     */
+    public String toStringFlat(String prefix) {
+        StringBuffer buffer = new StringBuffer();
+        String newPrefix = prefix + "-" + getName();
+        buffer.append(newPrefix);
+        buffer.append("\n");
+        buffer.append(getProperties().toStringFlat(newPrefix));
+        buffer.append(getObservances().toStringFlat(newPrefix));
+
+        return buffer.toString();
+    }
+
     /*
      * (non-Javadoc)
      * 

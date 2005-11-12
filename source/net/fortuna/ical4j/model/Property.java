@@ -36,6 +36,7 @@ package net.fortuna.ical4j.model;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.text.ParseException;
+import java.util.Iterator;
 
 import net.fortuna.ical4j.util.Strings;
 
@@ -239,6 +240,43 @@ public abstract class Property extends Content {
         buffer.append(getParameters());
         buffer.append(':');
         buffer.append("\r\n");
+
+        return buffer.toString();
+    }
+
+    /**
+     * Write property to a string using special flat format.
+     * 
+     * @param prefix
+     * @return
+     */
+    public final String toStringFlat(String prefix) {
+        StringBuffer buffer = new StringBuffer();
+        
+        String flatName = prefix + "_" + getName();
+
+        // Do the flat value first
+        buffer.append(flatName);
+        buffer.append(':');
+        if (this instanceof Escapable) {
+            buffer.append(Strings.escape(Strings.valueOf(getValue())));
+        } else {
+            buffer.append(Strings.valueOf(getValue()));
+        }
+        buffer.append("\n");
+        
+        // Do each parameter as a separate flat item
+        for(Iterator iter = getParameters().iterator(); iter.hasNext();) {
+
+            Parameter param = (Parameter)iter.next();
+
+            buffer.append(flatName);
+            buffer.append('_');
+            buffer.append(param.getName());
+            buffer.append(':');
+            buffer.append(param.getValue());
+            buffer.append("\n");
+        }
 
         return buffer.toString();
     }
