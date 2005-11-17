@@ -200,7 +200,7 @@ public class VTimeZone extends Component {
         StringBuffer buffer = new StringBuffer();
         String newPrefix = prefix + "-" + getName();
         buffer.append(newPrefix);
-        buffer.append("\n");
+        buffer.append(":BEGIN\n");
         buffer.append(getProperties().toStringFlat(newPrefix));
         buffer.append(getObservances().toStringFlat(newPrefix));
 
