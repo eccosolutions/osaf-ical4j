@@ -201,7 +201,7 @@ public class Calendar implements Serializable {
     public final String toStringFlat() {
         StringBuffer buffer = new StringBuffer();
         buffer.append(VCALENDAR);
-        buffer.append("\n");
+        buffer.append(":BEGIN\n");
         buffer.append(getProperties().toStringFlat(VCALENDAR));
         buffer.append(getComponents().toStringFlat(VCALENDAR));
 

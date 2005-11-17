@@ -143,7 +143,7 @@ public abstract class Component implements Serializable {
         StringBuffer buffer = new StringBuffer();
         String newPrefix = prefix + "-" + getName();
         buffer.append(newPrefix);
-        buffer.append("\n");
+        buffer.append(":BEGIN\n");
         buffer.append(getProperties().toStringFlat(newPrefix));
 
         return buffer.toString();
