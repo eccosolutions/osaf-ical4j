@@ -44,9 +44,9 @@ public class Related extends Parameter {
     
     private static final long serialVersionUID = 1570525804115869565L;
 
-    private static final String VALUE_START = "START";
+    public static final String VALUE_START = "START";
 
-    private static final String VALUE_END = "END";
+    public static final String VALUE_END = "END";
     
     public static final Related START = new Related(VALUE_START);
 
