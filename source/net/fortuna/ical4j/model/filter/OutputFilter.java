@@ -3,6 +3,7 @@ package net.fortuna.ical4j.model.filter;
 import java.util.HashMap;
 
 import net.fortuna.ical4j.model.Component;
+import net.fortuna.ical4j.model.Period;
 
 /**
  * @author cyrusdaboo
@@ -47,6 +48,23 @@ public class OutputFilter {
      * Others are not written out.
      */
     protected HashMap mProperties;
+
+    /**
+     * Expand all recurrence instances within the specified period.
+     */
+    protected Period expand;
+
+    /**
+     * Limit which overridden recurrence instances are returned to those falling
+     * in the specified period.
+     */
+    protected Period limit;
+
+    /**
+     * Limit the range of free busy information to only that within the
+     * specified period.
+     */
+    protected Period limitfb;
 
     /**
      * Initialise the filter element.
@@ -220,4 +238,48 @@ public class OutputFilter {
             result[1] = presult.booleanValue();
         return result;
     }
+
+    /**
+     * @return Returns the expand.
+     */
+    public Period getExpand() {
+        return expand;
+    }
+
+    /**
+     * @param expand The expand to set.
+     */
+    public void setExpand(Period expand) {
+        this.expand = expand;
+    }
+
+    /**
+     * @return Returns the limit.
+     */
+    public Period getLimit() {
+        return limit;
+    }
+
+    /**
+     * @param limit The limit to set.
+     */
+    public void setLimit(Period limit) {
+        this.limit = limit;
+    }
+
+    /**
+     * @return Returns the limitfb.
+     */
+    public Period getLimitfb() {
+        return limitfb;
+    }
+
+    /**
+     * @param limitfb The limitfb to set.
+     */
+    public void setLimitfb(Period limitfb) {
+        this.limitfb = limitfb;
+    }
+    
+    
 }

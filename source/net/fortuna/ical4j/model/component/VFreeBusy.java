@@ -39,11 +39,13 @@ import net.fortuna.ical4j.model.Component;
 import net.fortuna.ical4j.model.ComponentList;
 import net.fortuna.ical4j.model.DateTime;
 import net.fortuna.ical4j.model.Dur;
+import net.fortuna.ical4j.model.Parameter;
 import net.fortuna.ical4j.model.Period;
 import net.fortuna.ical4j.model.PeriodList;
 import net.fortuna.ical4j.model.Property;
 import net.fortuna.ical4j.model.PropertyList;
 import net.fortuna.ical4j.model.ValidationException;
+import net.fortuna.ical4j.model.filter.OutputFilter;
 import net.fortuna.ical4j.model.parameter.FbType;
 import net.fortuna.ical4j.model.property.DtEnd;
 import net.fortuna.ical4j.model.property.DtStamp;
@@ -324,6 +326,103 @@ public class VFreeBusy extends Component {
             }
         }
         return periods.normalise();
+    }
+
+    /**
+     * Write the component to a string filtering the properties and
+     * sub-components according to the supplied filter.
+     * 
+     * @param filter
+     *            filter to use.
+     * @return iCalendar data written.
+     */
+    public String toString(OutputFilter filter) {
+
+        // Check to see whether the range of FREEBUSYs needs to be limited
+        if (filter.getLimitfb() != null) {
+
+            // What we do is extract all the FREEBUSY properties from the
+            // current properties list, then add back a modified set that is
+            // truncated to the supplied time-range. The component is then
+            // written out with the filter. Then the new FREEBUSYs are removed
+            // and the old ones added back in. This preserves the original
+            // component.
+            
+            // Save and remove current FREEBUSYs
+            PropertyList oldItems = new PropertyList();
+            for (Iterator iter = getProperties().iterator(); iter.hasNext();) {
+                Property element = (Property) iter.next();
+                FreeBusy fb = (FreeBusy)element;
+                if (fb != null) {
+                    oldItems.add(fb);
+                    getProperties().remove(fb);
+                }
+            }
+            
+            // Add back modified FREEBUSYs
+            for (Iterator iter = oldItems.iterator(); iter.hasNext();) {
+                FreeBusy fb = (FreeBusy) iter.next();
+                getProperties().add(truncateFreeBusy(fb, filter.getLimitfb()));
+            }
+            
+            String result = super.toString(filter);
+            
+            // Remove modified FREEBUSYs
+            for (Iterator iter = getProperties().iterator(); iter.hasNext();) {
+                Property element = (Property) iter.next();
+                FreeBusy fb = (FreeBusy)element;
+                if (fb != null) {
+                    getProperties().remove(fb);
+                }
+            }
+
+            // Add back originals
+            getProperties().addAll(oldItems);
+            
+            return result;
+        } else {
+            return super.toString(filter);
+        }
+    }
+
+    private Property truncateFreeBusy(FreeBusy fb, Period limitfb) {
+        
+        // Create new property with the same parameters
+        FreeBusy newfb = new FreeBusy();
+        for (Iterator iter = fb.getParameters().iterator(); iter.hasNext();) {
+            Parameter param = (Parameter) iter.next();
+            newfb.getParameters().add(param);
+        }
+        
+        // Get the old period list and truncate
+        for (Iterator iter = fb.getPeriods().iterator(); iter.hasNext();) {
+            Period period = (Period) iter.next();
+            
+            // Check whether to ignore it
+            if (period.before(limitfb) || period.after(limitfb))
+                continue;
+            
+            // Check for truncate period
+            if (!limitfb.contains(period)) {
+                DateTime start = null;
+                DateTime end = null;
+                if (period.getStart().compareTo(limitfb.getStart()) < 0) {
+                    start = new DateTime(limitfb.getStart());
+                } else {
+                    start = new DateTime(period.getStart());
+                }
+                if (period.getEnd().compareTo(limitfb.getEnd()) > 0) {
+                    end = new DateTime(limitfb.getEnd());
+                } else {
+                    end = new DateTime(period.getEnd());
+                }
+                period = new Period(start, end);
+            }
+            
+            newfb.getPeriods().add(period);
+        }
+        
+        return newfb;
     }
 
     /*

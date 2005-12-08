@@ -93,6 +93,45 @@ public abstract class Component implements Serializable {
     }
 
     /**
+     * Create a (deep) copy of this component.
+     * 
+     * @return the component copy
+     */
+    /**
+     * @return
+     */
+    public Component copy() {
+
+        // Deep copy properties and sub-components
+        PropertyList newprops = copyProperties();
+        ComponentList newcomps = copySubComponents();
+
+        return ComponentFactory.getInstance().createComponent(getName(), newprops, newcomps);
+    }
+
+    /**
+     * Deep copy the properties of this component
+     */
+    protected PropertyList copyProperties() {
+        // Deep copy properties
+        PropertyList result = new PropertyList();
+        for (Iterator iter = getProperties().iterator(); iter.hasNext();) {
+            Property prop = (Property) iter.next();
+            result.add(prop.copy());
+        }
+
+        return result;
+    }
+
+    /**
+     * Deep copy the sub-components of this component. Specific component types
+     * must override this for their own types of sub-components.
+     */
+    protected ComponentList copySubComponents() {
+        return null;
+    }
+
+    /**
      * @see java.lang.Object#toString()
      */
     public String toString() {

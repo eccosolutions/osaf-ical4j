@@ -33,6 +33,8 @@
  */
 package net.fortuna.ical4j.model;
 
+import java.net.URISyntaxException;
+
 import net.fortuna.ical4j.util.Strings;
 
 /**
@@ -156,6 +158,19 @@ public abstract class Parameter extends Content {
      */
     public Parameter(final String aName) {
         this.name = aName;
+    }
+
+    /**
+     * Deep copy of parameter.
+     * 
+     * @return new parameter
+     */
+    public Parameter copy() {
+        try {
+            return ParameterFactoryImpl.getInstance().createParameter(getName(), getValue());
+        } catch (URISyntaxException e) {
+            return null;
+        }
     }
 
     /**

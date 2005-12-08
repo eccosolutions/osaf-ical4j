@@ -211,6 +211,34 @@ public abstract class Property extends Content {
     }
 
     /**
+     * Create a (deep) copy of this property.
+     * 
+     * @return the copy of the property
+     */
+    public Property copy() {
+        
+        // Deep copy each parameter
+        ParameterList params = new ParameterList();
+        for (Iterator iter = getParameters().iterator(); iter.hasNext();) {
+            Parameter param = (Parameter) iter.next();
+            params.add(param.copy());
+        }
+        
+        Property newprop = null;
+        try {
+            newprop = PropertyFactoryImpl.getInstance().createProperty(getName(), params, getValue());
+        } catch (IOException e) {
+            // Ignore the copy should always work
+        } catch (URISyntaxException e) {
+            // Ignore the copy should always work
+        } catch (ParseException e) {
+            // Ignore the copy should always work
+        }
+        
+        return newprop;
+    }
+
+    /**
      * @see java.lang.Object#toString()
      */
     public final String toString() {

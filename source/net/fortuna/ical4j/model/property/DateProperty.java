@@ -76,6 +76,27 @@ public abstract class DateProperty extends Property {
     }
 
     /**
+     * Create a (deep) copy of this property and sync timezone
+     * 
+     * @return the copy of the property
+     */
+    public Property copy() {
+        
+        DateProperty dprop = (DateProperty) super.copy();
+        if ((dprop != null) && (timezone != null)) {
+            String v = dprop.getValue();
+            dprop.setTimeZone(timezone);
+            try {
+                dprop.setValue(v);
+            } catch (ParseException e) {
+                // Safe to ignore
+            }
+        }
+        
+        return dprop;
+    }
+
+    /**
      * @return Returns the date.
      */
     public final Date getDate() {

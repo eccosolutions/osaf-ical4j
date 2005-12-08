@@ -35,8 +35,21 @@ package net.fortuna.ical4j.model;
 
 import java.io.Serializable;
 import java.util.Iterator;
+import java.util.TreeSet;
 
+import net.fortuna.ical4j.model.component.VEvent;
+import net.fortuna.ical4j.model.component.VJournal;
+import net.fortuna.ical4j.model.component.VTimeZone;
+import net.fortuna.ical4j.model.component.VToDo;
 import net.fortuna.ical4j.model.filter.OutputFilter;
+import net.fortuna.ical4j.model.property.DateProperty;
+import net.fortuna.ical4j.model.property.DtEnd;
+import net.fortuna.ical4j.model.property.DtStart;
+import net.fortuna.ical4j.model.property.ExDate;
+import net.fortuna.ical4j.model.property.ExRule;
+import net.fortuna.ical4j.model.property.RDate;
+import net.fortuna.ical4j.model.property.RRule;
+import net.fortuna.ical4j.model.property.RecurrenceId;
 import net.fortuna.ical4j.model.property.XProperty;
 import net.fortuna.ical4j.util.PropertyValidator;
 
@@ -178,13 +191,23 @@ public class Calendar implements Serializable {
      * @return the iCalendar data written out.
      */
     public final String toString(OutputFilter filter) {
+
+        Calendar calendar = this;
+
+        // If expansion of recurrence is required what we have to do is create a
+        // whole new calendar object with the new expanded components in it and
+        // then write that one out
+        if (filter.getExpand() != null) {
+            calendar = createExpanded(filter);
+        }
+
         StringBuffer buffer = new StringBuffer();
         buffer.append(BEGIN);
         buffer.append(':');
         buffer.append(VCALENDAR);
         buffer.append("\r\n");
-        buffer.append(getProperties().toString(filter));
-        buffer.append(getComponents().toString(filter));
+        buffer.append(calendar.getProperties().toString(filter));
+        buffer.append(calendar.getComponents().toString(filter));
         buffer.append(END);
         buffer.append(':');
         buffer.append(VCALENDAR);
@@ -193,10 +216,163 @@ public class Calendar implements Serializable {
         return buffer.toString();
     }
 
+    private Calendar createExpanded(OutputFilter filter) {
+
+        // Create a new calendar with the same top-level properties as this one
+        Calendar newCal = new Calendar();
+        newCal.getProperties().addAll(getProperties());
+
+        // Now look at each component and determine whether expansion is
+        // required
+        InstanceList instances = new InstanceList();
+        ComponentList overrides = new ComponentList();
+        Component master = null;
+        for (Iterator iter = getComponents().iterator(); iter.hasNext();) {
+            Component comp = (Component) iter.next();
+
+            if ((comp instanceof VEvent) || (comp instanceof VJournal)
+                    || (comp instanceof VToDo)) {
+                // See if this is the master instance
+                if (comp.getProperties().getProperty(Property.RECURRENCE_ID) == null) {
+                    master = comp;
+                    instances.addComponent(comp, filter.getExpand().getStart(),
+                            filter.getExpand().getEnd());
+                } else {
+                    overrides.add(comp);
+                }
+            } else if (comp instanceof VTimeZone) {
+                // Ignore VTIMEZONEs as we convert all date-time properties to
+                // UTC
+            } else {
+                // Create new component and convert properties to UTC
+                Component newcomp = comp.copy();
+                componentToUTC(newcomp);
+                newCal.getComponents().add(newcomp);
+            }
+        }
+
+        for (Iterator iterator = overrides.iterator(); iterator.hasNext();) {
+            Component comp = (Component) iterator.next();
+            instances.addComponent(comp, null, null);
+        }
+
+        // Create a copy of the master with recurrence properties removed
+        boolean isRecurring = false;
+        Component masterCopy = master.copy();
+        for (Iterator iter = masterCopy.getProperties().iterator(); iter
+                .hasNext();) {
+            Property prop = (Property) iter.next();
+            if ((prop instanceof RRule) || (prop instanceof RDate)
+                    || (prop instanceof ExRule) || (prop instanceof ExDate)) {
+                iter.remove();
+                isRecurring = true;
+            }
+        }
+
+        // Expand each instance within the requested range
+        TreeSet sortedKeys = new TreeSet(instances.keySet());
+        for (Iterator iter = sortedKeys.iterator(); iter.hasNext();) {
+            String ikey = (String) iter.next();
+            Instance instance = (Instance) instances.get(ikey);
+
+            // Make sure this instance is within the requested range
+            if ((filter.getExpand().getStart().compareTo(instance.getEnd()) >= 0)
+                    || (filter.getExpand().getEnd().compareTo(
+                            instance.getStart()) <= 0))
+                continue;
+            
+            // Create appropriate copy
+            Component copy = null;
+            if (instance.getComp() == master) {
+                copy = masterCopy.copy();
+            } else {
+                copy = instance.getComp().copy();
+            }
+            componentToUTC(copy);
+
+            // Adjust the copy to match the actual instance info
+            if (isRecurring) {
+                // Add RECURRENCE-ID, replacing existing if present
+                RecurrenceId rid = (RecurrenceId) copy.getProperties()
+                        .getProperty(Property.RECURRENCE_ID);
+                if (rid != null) {
+                    copy.getProperties().remove(rid);
+                }
+                rid = new RecurrenceId(instance.getRid());
+                copy.getProperties().add(rid);
+
+                // Adjust DTSTART (in UTC)
+                DtStart olddtstart = (DtStart) copy.getProperties().getProperty(
+                        Property.DTSTART);
+                if (olddtstart != null) {
+                    copy.getProperties().remove(olddtstart);
+                }
+                DtStart newdtstart = new DtStart(instance.getStart());
+                if ((newdtstart.getDate() instanceof DateTime) && (((DateTime)newdtstart.getDate()).getTimeZone() != null)) {
+                    newdtstart.setUtc(true);
+                }
+                copy.getProperties().add(newdtstart);
+
+                // If DTEND present, replace it (in UTC)
+                DtEnd olddtend = (DtEnd) copy.getProperties().getProperty(
+                        Property.DTEND);
+                if (olddtend != null) {
+                    copy.getProperties().remove(olddtend);
+                    DtEnd newdtend = new DtEnd(instance.getEnd());
+                    if ((newdtend.getDate() instanceof DateTime) && (((DateTime)newdtend.getDate()).getTimeZone() != null)) {
+                        newdtend.setUtc(true);
+                    }
+                    copy.getProperties().add(newdtend);
+                }
+            }
+            
+            // Now have a valid expanded instance so add it
+            newCal.getComponents().add(copy);
+        }
+
+        return newCal;
+    }
+
+    /**
+     * Convert all DATE-TIME properties to UTC, remvoing timezone references.
+     * 
+     * @param comp
+     */
+    private void componentToUTC(Component comp) {
+        
+        // Do to each top-level property
+        for (Iterator iter = comp.getProperties().iterator(); iter.hasNext();) {
+            Property prop = (Property) iter.next();
+            if (prop instanceof DateProperty)
+            {
+                DateProperty dprop = (DateProperty) prop;
+                if ((dprop.getDate() instanceof DateTime)
+                        && (((DateTime) dprop.getDate()).getTimeZone() != null)) {
+                    dprop.setUtc(true);
+                }
+            }
+        }
+        
+        // Do to each embedded component
+        ComponentList subcomps = null;
+        if (comp instanceof VEvent) {
+            subcomps = ((VEvent)comp).getAlarms();
+        } else if (comp instanceof VToDo) {
+            subcomps = ((VToDo)comp).getAlarms();
+        }
+        
+        if (subcomps != null) {
+            for (Iterator iter = subcomps.iterator(); iter.hasNext();) {
+                Component subcomp = (Component) iter.next();
+                componentToUTC(subcomp);
+            }
+        }
+    }
+
     /**
      * Write calendar component to string using the special 'flat' format.
      * 
-      * @return the iCalendar data written out.
+     * @return the iCalendar data written out.
      */
     public final String toStringFlat() {
         StringBuffer buffer = new StringBuffer();
