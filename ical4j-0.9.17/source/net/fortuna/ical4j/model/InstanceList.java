@@ -17,7 +17,9 @@ package net.fortuna.ical4j.model;
 
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.TreeSet;
 
+import net.fortuna.ical4j.model.parameter.Range;
 import net.fortuna.ical4j.model.parameter.Value;
 import net.fortuna.ical4j.model.property.DtEnd;
 import net.fortuna.ical4j.model.property.DtStart;
@@ -96,7 +98,7 @@ public class InstanceList extends HashMap {
         // Always add first instance if included in range..
         if (start.before(rangeEnd)) {
             Instance instance = new Instance(comp, start, end);
-            put(instance.getStart().toString(), instance);
+            put(instance.getRid().toString(), instance);
         }
 
         // recurrence dates..
@@ -113,7 +115,7 @@ public class InstanceList extends HashMap {
                             && period.getEnd().after(rangeStart)) {
                         Instance instance = new Instance(comp, period
                                 .getStart(), period.getEnd());
-                        put(instance.getStart().toString(), instance);
+                        put(instance.getRid().toString(), instance);
                     }
                 }
             } else {
@@ -122,7 +124,7 @@ public class InstanceList extends HashMap {
                     Date endDate = Dates.getInstance(duration
                             .getTime(startDate), start);
                     Instance instance = new Instance(comp, startDate, endDate);
-                    put(instance.getStart().toString(), instance);
+                    put(instance.getRid().toString(), instance);
                 }
             }
         }
@@ -144,7 +146,7 @@ public class InstanceList extends HashMap {
                 Date endDate = Dates.getInstance(duration.getTime(startDate),
                         start);
                 Instance instance = new Instance(comp, startDate, endDate);
-                put(instance.getStart().toString(), instance);
+                put(instance.getRid().toString(), instance);
             }
         }
         // exception dates..
@@ -179,37 +181,106 @@ public class InstanceList extends HashMap {
 
     /**
      * Add an override component if it falls within the specified time range.
-
+     * 
      * @param comp
      */
     protected void addOverride(Component comp) {
 
         // First check to see that the appropriate properties are present.
 
-        // We need a DTSTART. Note that in an overridden instance, if the
-        // DTSTART has not changed (i.e. some other property has been changed)
-        // it may not be present, and if so there is no need to treat this as a
-        // seperate instance with regards to time-range.
+        // We need a DTSTART.
         Date dtstart = getStartDate(comp);
         if (dtstart == null)
             return;
 
         // We need either DTEND or DURATION.
         Date dtend = getEndDate(comp);
-        if (dtend == null)
-            return;
+        if (dtend == null) {
+            Dur duration;
+            if (dtstart instanceof DateTime) {
+                // Its an timed event with no duration
+                duration = new Dur(0, 0, 0, 0);
+            } else {
+                // Its an all day event so duration is one day
+                duration = new Dur(1, 0, 0, 0);
+            }
+            dtend = Dates.getInstance(duration.getTime(dtstart), dtstart);
+        }
 
         // Now create the map entry
         Date riddt = getReccurrenceId(comp);
         boolean future = getRange(comp);
 
-        Instance instance = new Instance(comp, dtstart, dtend, riddt, future);
+        Instance instance = new Instance(comp, dtstart, dtend, riddt, true,
+                future);
+        String key = instance.getRid().toString();
 
         // Replace the master instance by adding this one
-        put(riddt.toString(), instance);
+        put(key, instance);
 
-        // TODO handle THISANDFUTURE
+        // Handle THISANDFUTURE if present
+        Range range = (Range) comp.getProperties().getProperty(
+                Property.RECURRENCE_ID).getParameters().getParameter(
+                Parameter.RANGE);
 
+        // TODO Ignoring THISANDPRIOR
+        if ((range != null) && Range.THISANDFUTURE.equals(range)) {
+
+            // Policy - iterate over all the instances after this one, replacing
+            // the original instance withg a version adjusted to match the
+            // override component
+
+            // We need to account for a time shift in the overridden component
+            // by applying the same shift to the future instances
+            boolean timeShift = (dtstart.compareTo(riddt) != 0);
+            Dur offsetTime = (timeShift ? new Dur(riddt, dtstart) : null);
+            Dur newDuration = (timeShift ? new Dur(dtstart, dtend) : null);
+
+            // Get a sorted list rids so we can identify the starting location
+            // for the override
+            TreeSet sortedKeys = new TreeSet(keySet());
+            for (Iterator iter = sortedKeys.iterator(); iter.hasNext();) {
+                String ikey = (String) iter.next();
+                if (ikey.equals(key)) {
+                    while (iter.hasNext()) {
+                        ikey = (String) iter.next();
+                        Instance oldinstance = (Instance) get(ikey);
+
+                        // Do not override an already overridden instance
+                        if (oldinstance.isOverridden())
+                            continue;
+
+                        // Determine start/end for new instance which may need
+                        // to be offset by the start/end offset and adjusted for
+                        // a new duration from the overridden component
+                        Date originalstart = oldinstance.getRid();
+                        Date start = oldinstance.getStart();
+                        Date end = oldinstance.getEnd();
+
+                        if (timeShift) {
+                            // Handling of overlapping overridden THISANDFUTURE
+                            // components is not defined in 2445. The policy
+                            // here is that a THISANDFUTURE override should
+                            // override any previous THISANDFUTURE overrides. So
+                            // we need to use the original start time for the
+                            // instance being adjusted as the time that is
+                            // shifted, and the original start time is geiven by
+                            // its recurrence-id.
+                            start = Dates.getInstance(offsetTime
+                                    .getTime(originalstart), originalstart);
+                            end = Dates.getInstance(newDuration.getTime(start),
+                                    start);
+                        }
+
+                        // Replace with new instance
+                        Instance newinstance = new Instance(comp, start, end,
+                                originalstart, false, false);
+                        remove(ikey);
+                        put(newinstance.getRid().toString(), newinstance);
+                    }
+                }
+            }
+        }
     }
 
     private Date getStartDate(Component comp) {

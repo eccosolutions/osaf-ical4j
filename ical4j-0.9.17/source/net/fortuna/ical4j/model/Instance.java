@@ -37,6 +37,7 @@ public class Instance {
     private Date start;
     private Date end;
     private Date rid;
+    private boolean overridden;
     private boolean future;
 
     /**
@@ -45,7 +46,7 @@ public class Instance {
      * @param start
      */
     public Instance(Component comp, Date start, Date end) {
-        this(comp, start, end, null, false);
+        this(comp, start, end, start, false, false);
     }
 
     /**
@@ -59,11 +60,13 @@ public class Instance {
                     Date start,
                     Date end,
                     Date rid,
+                    boolean overridden,
                     boolean future) {
         this.comp = comp;
         this.start = copyNormalisedDate(start);
         this.end = copyNormalisedDate(end);
-        this.rid = (rid != null) ? copyNormalisedDate(rid) : null;
+        this.rid = copyNormalisedDate(rid);
+        this.overridden = overridden;
         this.future = future;
     }
 
@@ -93,6 +96,13 @@ public class Instance {
      */
     public Date getRid() {
         return rid;
+    }
+
+    /**
+     * @return Returns the overridden.
+     */
+    public boolean isOverridden() {
+        return overridden;
     }
 
     /**

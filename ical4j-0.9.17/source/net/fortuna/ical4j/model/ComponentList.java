@@ -37,7 +37,13 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Iterator;
 
+import net.fortuna.ical4j.model.component.VEvent;
 import net.fortuna.ical4j.model.filter.OutputFilter;
+import net.fortuna.ical4j.model.parameter.Range;
+import net.fortuna.ical4j.model.property.DtEnd;
+import net.fortuna.ical4j.model.property.DtStart;
+import net.fortuna.ical4j.model.property.RecurrenceId;
+import net.fortuna.ical4j.util.Dates;
 
 /**
  * Defines a list of iCalendar components.
@@ -86,18 +92,78 @@ public class ComponentList extends ArrayList implements Serializable {
     public final String toString(OutputFilter filter) {
 
         // Short cut for all components
-        if (filter.isAllSubComponents())
+        if (filter.isAllSubComponents() && (filter.getLimit() == null))
             return toString();
-        else if (filter.hasSubComponentFilters()) {
+        else if (filter.hasSubComponentFilters() || filter.isAllSubComponents()) {
             StringBuffer buffer = new StringBuffer();
             for (Iterator i = iterator(); i.hasNext();) {
                 // Test each property to see whether it is in the filter
                 Component c = (Component) i.next();
-                OutputFilter subfilter = filter.getSubComponentFilter(c);
 
-                // Check whether to write it out
-                if (subfilter != null) {
-                    buffer.append(c.toString(subfilter));
+                // Check for limit
+                if ((filter.getLimit() != null) && (c instanceof VEvent)) {
+
+                    // Policy: if component has a Recurrence-ID property then
+                    // include it if:
+                    //
+                    // a) If start/end are within limit range
+                    // b) else if r-id + duration is within the limit range
+                    // c) else if r-id is before limit start and
+                    // range=thisandfuture
+                    // d) else if r-id is after limit end and range=thisandprior
+                    //
+                    
+                    RecurrenceId rid = (RecurrenceId) c.getProperties().getProperty(Property.RECURRENCE_ID);
+                    if (rid != null) {
+                        DtStart dtstart = ((VEvent)c).getStartDate();
+                        DtEnd dtend = ((VEvent)c).getEndDate();
+                        DateTime start = new DateTime(dtstart.getDate());
+                        DateTime end = null;
+                        if (dtend != null) {
+                            end = new DateTime(dtend.getDate());
+                        } else {
+                            Dur duration = null;
+                            if (start instanceof DateTime) {
+                                // Its a timed event with no duration
+                                duration = new Dur(0, 0, 0, 0);
+                            } else {
+                                // Its an all day event so duration is one day
+                                duration = new Dur(1, 0, 0, 0);
+                            }
+                            end = (DateTime)Dates.getInstance(duration.getTime(start), start);
+                        }
+                        
+                        Period p = new Period(start, end);
+                        if (!p.intersects(filter.getLimit())) {
+                            Dur duration = new Dur(start, end);
+                            start = new DateTime(rid.getDate());
+                            end = (DateTime)Dates.getInstance(duration.getTime(start), start);
+                            p = new Period(start, end);
+                            if (!p.intersects(filter.getLimit())) {
+                                if (Range.THISANDFUTURE.equals(rid.getParameters().getParameter(Parameter.RANGE))) {
+                                    if (start.compareTo(filter.getLimit().getEnd()) >= 0)
+                                        continue;
+                                }
+                                else if (Range.THISANDPRIOR.equals(rid.getParameters().getParameter(Parameter.RANGE))) {
+                                    if (start.compareTo(filter.getLimit().getStart()) < 0)
+                                        continue;
+                                } else
+                                    continue;
+                            }
+                        } 
+                    }
+                }
+
+                // Write all or some
+                if (filter.isAllSubComponents()) {
+                    buffer.append(c.toString());
+                } else {
+                    OutputFilter subfilter = filter.getSubComponentFilter(c);
+
+                    // Check whether to write it out
+                    if (subfilter != null) {
+                        buffer.append(c.toString(subfilter));
+                    }
                 }
             }
             return buffer.toString();
@@ -114,7 +180,7 @@ public class ComponentList extends ArrayList implements Serializable {
     public final String toStringFlat(String prefix) {
         StringBuffer buffer = new StringBuffer();
         for (Iterator i = iterator(); i.hasNext();) {
-            buffer.append(((Component)i.next()).toStringFlat(prefix));
+            buffer.append(((Component) i.next()).toStringFlat(prefix));
         }
         return buffer.toString();
     }
