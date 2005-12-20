@@ -171,7 +171,7 @@ public class CalendarOutputter {
      * VCALENDAR-VEVENT
      * VCALENDAR-VEVENT_ATTENDEE:mailto:joe@example.com
      * VCALENDAR-VEVENT_ATTENDEE_PARTSTAT:RSVP
-     * 
+     *
      * @param calendar
      *            calendar to write to writer
      * @param out
@@ -186,14 +186,10 @@ public class CalendarOutputter {
             calendar.validate();
         }
 
-        FoldingWriter writer = new FoldingWriter(out, foldLength);
-
         try {
-
-            writer.write(calendar.toStringFlat());
+            out.write(calendar.toStringFlat());
         } finally {
-
-            writer.close();
+            out.close();
         }
     }
 
