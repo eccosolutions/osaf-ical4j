@@ -41,75 +41,76 @@ import net.fortuna.ical4j.model.Date;
 import net.fortuna.ical4j.model.Property;
 import net.fortuna.ical4j.model.PropertyList;
 import net.fortuna.ical4j.model.ValidationException;
+import net.fortuna.ical4j.model.filter.OutputFilter;
 import net.fortuna.ical4j.util.PropertyValidator;
 
 /**
  * Defines an iCalendar VTIMEZONE component.
  * 
  * <pre>
- *    4.6.5 Time Zone Component
- *    
- *       Component Name: VTIMEZONE
- *    
- *       Purpose: Provide a grouping of component properties that defines a
- *       time zone.
- *    
- *       Formal Definition: A &quot;VTIMEZONE&quot; calendar component is defined by the
- *       following notation:
- *    
- *         timezonec  = &quot;BEGIN&quot; &quot;:&quot; &quot;VTIMEZONE&quot; CRLF
- *    
- *                      2*(
- *    
- *                      ; 'tzid' is required, but MUST NOT occur more
- *                      ; than once
- *    
- *                    tzid /
- *    
- *                      ; 'last-mod' and 'tzurl' are optional,
- *                    but MUST NOT occur more than once
- *    
- *                    last-mod / tzurl /
- *    
- *                      ; one of 'standardc' or 'daylightc' MUST occur
- *                    ..; and each MAY occur more than once.
- *    
- *                    standardc / daylightc /
- *    
- *                    ; the following is optional,
- *                    ; and MAY occur more than once
- *    
- *                      x-prop
- *    
- *                      )
- *    
- *                      &quot;END&quot; &quot;:&quot; &quot;VTIMEZONE&quot; CRLF
- *    
- *         standardc  = &quot;BEGIN&quot; &quot;:&quot; &quot;STANDARD&quot; CRLF
- *    
- *                      tzprop
- *    
- *                      &quot;END&quot; &quot;:&quot; &quot;STANDARD&quot; CRLF
- *    
- *         daylightc  = &quot;BEGIN&quot; &quot;:&quot; &quot;DAYLIGHT&quot; CRLF
- *    
- *                      tzprop
- *    
- *                      &quot;END&quot; &quot;:&quot; &quot;DAYLIGHT&quot; CRLF
- *    
- *         tzprop     = 3*(
- *    
- *                    ; the following are each REQUIRED,
- *                    ; but MUST NOT occur more than once
- *    
- *                    dtstart / tzoffsetto / tzoffsetfrom /
- *    
- *                    ; the following are optional,
- *                    ; and MAY occur more than once
- *    
- *                    comment / rdate / rrule / tzname / x-prop
- *    
- *                    )
+ *     4.6.5 Time Zone Component
+ *     
+ *        Component Name: VTIMEZONE
+ *     
+ *        Purpose: Provide a grouping of component properties that defines a
+ *        time zone.
+ *     
+ *        Formal Definition: A &quot;VTIMEZONE&quot; calendar component is defined by the
+ *        following notation:
+ *     
+ *          timezonec  = &quot;BEGIN&quot; &quot;:&quot; &quot;VTIMEZONE&quot; CRLF
+ *     
+ *                       2*(
+ *     
+ *                       ; 'tzid' is required, but MUST NOT occur more
+ *                       ; than once
+ *     
+ *                     tzid /
+ *     
+ *                       ; 'last-mod' and 'tzurl' are optional,
+ *                     but MUST NOT occur more than once
+ *     
+ *                     last-mod / tzurl /
+ *     
+ *                       ; one of 'standardc' or 'daylightc' MUST occur
+ *                     ..; and each MAY occur more than once.
+ *     
+ *                     standardc / daylightc /
+ *     
+ *                     ; the following is optional,
+ *                     ; and MAY occur more than once
+ *     
+ *                       x-prop
+ *     
+ *                       )
+ *     
+ *                       &quot;END&quot; &quot;:&quot; &quot;VTIMEZONE&quot; CRLF
+ *     
+ *          standardc  = &quot;BEGIN&quot; &quot;:&quot; &quot;STANDARD&quot; CRLF
+ *     
+ *                       tzprop
+ *     
+ *                       &quot;END&quot; &quot;:&quot; &quot;STANDARD&quot; CRLF
+ *     
+ *          daylightc  = &quot;BEGIN&quot; &quot;:&quot; &quot;DAYLIGHT&quot; CRLF
+ *     
+ *                       tzprop
+ *     
+ *                       &quot;END&quot; &quot;:&quot; &quot;DAYLIGHT&quot; CRLF
+ *     
+ *          tzprop     = 3*(
+ *     
+ *                     ; the following are each REQUIRED,
+ *                     ; but MUST NOT occur more than once
+ *     
+ *                     dtstart / tzoffsetto / tzoffsetfrom /
+ *     
+ *                     ; the following are optional,
+ *                     ; and MAY occur more than once
+ *     
+ *                     comment / rdate / rrule / tzname / x-prop
+ *     
+ *                     )
  * </pre>
  * 
  * @author Ben Fortuna
@@ -159,7 +160,8 @@ public class VTimeZone extends Component {
      * @param observances
      *            a list of timezone types
      */
-    public VTimeZone(final PropertyList properties, final ComponentList observances) {
+    public VTimeZone(final PropertyList properties,
+            final ComponentList observances) {
         super(VTIMEZONE, properties);
         this.observances = observances;
     }
@@ -168,8 +170,49 @@ public class VTimeZone extends Component {
      * @see java.lang.Object#toString()
      */
     public final String toString() {
-        return BEGIN + ":" + getName() + "\r\n" + getProperties() + observances + END
-                + ":" + getName() + "\r\n";
+        return BEGIN + ":" + getName() + "\r\n" + getProperties() + observances
+                + END + ":" + getName() + "\r\n";
+    }
+
+    /**
+     * Write the component to a string filtering the properties and
+     * sub-components according to the supplied filter.
+     * 
+     * @param filter
+     *            filter to use.
+     * @return iCalendar data written.
+     */
+    public String toString(OutputFilter filter) {
+        StringBuffer buffer = new StringBuffer();
+        buffer.append(BEGIN);
+        buffer.append(':');
+        buffer.append(getName());
+        buffer.append("\r\n");
+        buffer.append(getProperties().toString(filter));
+        buffer.append(getObservances().toString(filter));
+        buffer.append(END);
+        buffer.append(':');
+        buffer.append(getName());
+        buffer.append("\r\n");
+
+        return buffer.toString();
+    }
+
+    /**
+     * Write component to string using special flat format.
+     * 
+     * @param prefix
+     * @return
+     */
+    public String toStringFlat(String prefix) {
+        StringBuffer buffer = new StringBuffer();
+        String newPrefix = prefix + "-" + getName();
+        buffer.append(newPrefix);
+        buffer.append(":BEGIN\n");
+        buffer.append(getProperties().toStringFlat(newPrefix));
+        buffer.append(getObservances().toStringFlat(newPrefix));
+
+        return buffer.toString();
     }
 
     /*
@@ -192,8 +235,8 @@ public class VTimeZone extends Component {
          * ; 'last-mod' and 'tzurl' are optional, but MUST NOT occur more than
          * once last-mod / tzurl /
          */
-        PropertyValidator.getInstance().assertOneOrLess(
-                Property.LAST_MODIFIED, getProperties());
+        PropertyValidator.getInstance().assertOneOrLess(Property.LAST_MODIFIED,
+                getProperties());
         PropertyValidator.getInstance().assertOneOrLess(Property.TZURL,
                 getProperties());
 
@@ -227,13 +270,14 @@ public class VTimeZone extends Component {
     public final ComponentList getObservances() {
         return observances;
     }
-    
+
     /**
-     * Returns the latest applicable timezone observance for the specified
-     * date.
-     * @param date the latest possible date for a timezone observance onset
-     * @return the latest applicable timezone observance for the specified
-     * date or null if there are no applicable observances
+     * Returns the latest applicable timezone observance for the specified date.
+     * 
+     * @param date
+     *            the latest possible date for a timezone observance onset
+     * @return the latest applicable timezone observance for the specified date
+     *         or null if there are no applicable observances
      */
     public final Observance getApplicableObservance(final Date date) {
         Observance latestObservance = null;
@@ -241,7 +285,8 @@ public class VTimeZone extends Component {
         for (Iterator i = getObservances().iterator(); i.hasNext();) {
             Observance observance = (Observance) i.next();
             Date onset = observance.getLatestOnset(date);
-            if (latestOnset == null || (onset != null && onset.after(latestOnset))) {
+            if (latestOnset == null
+                    || (onset != null && onset.after(latestOnset))) {
                 latestOnset = onset;
                 latestObservance = observance;
             }
