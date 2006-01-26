@@ -15,6 +15,7 @@
  */
 package net.fortuna.ical4j.model;
 
+import java.text.ParseException;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.TreeSet;
@@ -44,7 +45,7 @@ import net.fortuna.ical4j.util.Dates;
 public class InstanceList extends HashMap {
 
     private static final long serialVersionUID = 1838360990532590681L;
-
+    
     public InstanceList() {
         super();
     }
@@ -77,6 +78,7 @@ public class InstanceList extends HashMap {
     protected void addMaster(Component comp, Date rangeStart, Date rangeEnd) {
 
         Date start = getStartDate(comp);
+        
         if (start == null) {
             return;
         }
@@ -95,6 +97,9 @@ public class InstanceList extends HashMap {
         } else
             duration = new Dur(start, end);
 
+        start = convertToUTC(start);
+        end = convertToUTC(end);
+        
         // Always add first instance if included in range..
         if (start.before(rangeEnd)) {
             Instance instance = new Instance(comp, start, end);
@@ -317,5 +322,26 @@ public class InstanceList extends HashMap {
             return false;
         Parameter range = rid.getParameters().getParameter(Parameter.RANGE);
         return (range != null) && "THISANDFUTURE".equals(range.getValue());
+    }
+    
+    /**
+     * Converts a date to utc time if it is a floating DateTime
+     * @param date
+     * @return
+     */
+    private Date convertToUTC(Date date){
+        if (date instanceof DateTime){
+            DateTime dateTime = (DateTime) date;
+            if (dateTime.getTimeZone() == null && !dateTime.isUtc()){
+                String value = dateTime.toString() + "Z";
+                try {
+                    date = new DateTime(value);
+                } catch (ParseException pe){
+                    throw new RuntimeException(pe);
+                }
+            }
+        }
+        
+        return date;
     }
 }

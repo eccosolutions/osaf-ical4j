@@ -197,7 +197,7 @@ public class Calendar implements Serializable {
         // If expansion of recurrence is required what we have to do is create a
         // whole new calendar object with the new expanded components in it and
         // then write that one out
-        if (filter.getExpand() != null && hasRecurrenceRule()) {
+        if (filter.getExpand() != null) {
             calendar = createExpanded(filter);
         }
 
@@ -489,10 +489,6 @@ public class Calendar implements Serializable {
             Component component = (Component) i.next();
             component.validate();
         }
-    }
-
-    private boolean hasRecurrenceRule(){
-        return getProperties().getProperty(Property.RRULE) != null;
     }
     
     /**
