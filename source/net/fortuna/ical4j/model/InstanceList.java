@@ -96,9 +96,6 @@ public class InstanceList extends HashMap {
             end = Dates.getInstance(duration.getTime(start), start);
         } else
             duration = new Dur(start, end);
-
-        start = convertToUTC(start);
-        end = convertToUTC(end);
         
         // Always add first instance if included in range..
         if (start.before(rangeEnd)) {
@@ -322,26 +319,5 @@ public class InstanceList extends HashMap {
             return false;
         Parameter range = rid.getParameters().getParameter(Parameter.RANGE);
         return (range != null) && "THISANDFUTURE".equals(range.getValue());
-    }
-    
-    /**
-     * Converts a date to utc time if it is a floating DateTime
-     * @param date
-     * @return
-     */
-    private Date convertToUTC(Date date){
-        if (date instanceof DateTime){
-            DateTime dateTime = (DateTime) date;
-            if (dateTime.getTimeZone() == null && !dateTime.isUtc()){
-                String value = dateTime.toString() + "Z";
-                try {
-                    date = new DateTime(value);
-                } catch (ParseException pe){
-                    throw new RuntimeException(pe);
-                }
-            }
-        }
-        
-        return date;
     }
 }
