@@ -42,15 +42,18 @@ import net.fortuna.ical4j.model.component.VJournal;
 import net.fortuna.ical4j.model.component.VTimeZone;
 import net.fortuna.ical4j.model.component.VToDo;
 import net.fortuna.ical4j.model.filter.OutputFilter;
+import net.fortuna.ical4j.model.parameter.Range;
 import net.fortuna.ical4j.model.property.DateProperty;
 import net.fortuna.ical4j.model.property.DtEnd;
 import net.fortuna.ical4j.model.property.DtStart;
+import net.fortuna.ical4j.model.property.Duration;
 import net.fortuna.ical4j.model.property.ExDate;
 import net.fortuna.ical4j.model.property.ExRule;
 import net.fortuna.ical4j.model.property.RDate;
 import net.fortuna.ical4j.model.property.RRule;
 import net.fortuna.ical4j.model.property.RecurrenceId;
 import net.fortuna.ical4j.model.property.XProperty;
+import net.fortuna.ical4j.util.Dates;
 import net.fortuna.ical4j.util.PropertyValidator;
 
 /**
@@ -196,11 +199,17 @@ public class Calendar implements Serializable {
 
         // If expansion of recurrence is required what we have to do is create a
         // whole new calendar object with the new expanded components in it and
-        // then write that one out
+        // then write that one out.
         if (filter.getExpand() != null) {
             calendar = createExpanded(filter);
+        }  
+        // If limit of recurrence set is required, we have to remove those
+        // overriden components in recurring components that do not
+        // overlap the given time period.
+        else if(filter.getLimit() != null) {
+            calendar = createLimitedRecurrence(filter);
         }
-
+        
         StringBuffer buffer = new StringBuffer();
         buffer.append(BEGIN);
         buffer.append(':');
@@ -215,7 +224,127 @@ public class Calendar implements Serializable {
 
         return buffer.toString();
     }
+    
+    /**
+     * Return a new Calendar instance based on the current instance,
+     * with the removal of all override components that do not 
+     * overlap the limit range in the OutputFilter.
+     * @param filter
+     * @return
+     */
+    private Calendar createLimitedRecurrence(OutputFilter filter) {
+       
+        // Create a new calendar with the same top-level properties as current
+        Calendar newCal = new Calendar();
+        newCal.getProperties().addAll(getProperties());
+       
+        // Limit range
+        Period period = filter.getLimit();
+        
+        // Filter override components based on limit range
+        for (Iterator iter = getComponents().iterator(); iter.hasNext();) {
+            Component comp = (Component) iter.next();
 
+            // Only care about VEVENT, VJOURNAL, VTODO
+            if ((comp instanceof VEvent) || (comp instanceof VJournal)
+                    || (comp instanceof VToDo)) {
+                // Add master component to result Calendar
+                if (comp.getProperties().getProperty(Property.RECURRENCE_ID) == null) {
+                    newCal.getComponents().add(comp);
+                }
+                // Add override component if in the limit range
+                else if(isOverrideInRange(comp,period)) {
+                    newCal.getComponents().add(comp);
+                    // TODO: What about overlapping THISANDFUTURE??
+                    // If there is an override inside the range soley because
+                    // of THISANDFUTURE, should that override be
+                    // removed if another THISANDFUTURE override
+                    // occurs after the previous one, but still only
+                    // in the range becuase of THISANDFUTURE.
+                }
+            } 
+            // Add all other components
+            else {
+                newCal.getComponents().add(comp);
+            }
+        }
+        
+        return newCal;
+    }
+    
+    /**
+     * Determine if override component occurs within the
+     * given time range.
+     * @param comp
+     * @param period
+     * @return
+     */
+    private boolean isOverrideInRange(Component comp, Period period) {
+        // We need a DTSTART.
+        Date dtstart = getStartDate(comp);
+        if (dtstart == null)
+            return false;
+
+        // We need either DTEND or DURATION.
+        Date dtend = getEndDate(comp);
+        if (dtend == null) {
+            Dur duration;
+            if (dtstart instanceof DateTime) {
+                // Its an timed event with no duration
+                duration = new Dur(0, 0, 0, 0);
+            } else {
+                // Its an all day event so duration is one day
+                duration = new Dur(1, 0, 0, 0);
+            }
+            dtend = Dates.getInstance(duration.getTime(dtstart), dtstart);
+        }
+          
+        // Handle THISANDFUTURE
+        // NOTE: An overap is assumed if dtend is before the limit
+        //       start date and THISANDFUTURE is present. We should
+        //       really expand THISANDFUTURE and verify that an instance
+        //       ocurs in the limit range before assuming overlap.
+        Range range = (Range) comp.getProperties().getProperty(
+                Property.RECURRENCE_ID).getParameters().getParameter(
+                Parameter.RANGE);
+        
+        boolean hasThisAndFuture = Range.THISANDFUTURE.equals(range);
+        
+        // Test if [start,end] does not overlap given period
+        // Case 1, override start is after end of period we care about
+        if(dtstart.after(period.getEnd()))
+            return false;
+        
+        // Case 2, override end is before start of period we care about
+        // AND there is no THISANDFUTURE present
+        if(dtend.before(period.getStart()) && !hasThisAndFuture)
+            return false;
+        
+        // otherwise there is overlap
+        return true;
+    }
+    
+    private Date getStartDate(Component comp) {
+        DtStart prop = (DtStart) comp.getProperties().getProperty(
+                Property.DTSTART);
+        return (prop != null) ? prop.getDate() : null;
+    }
+
+    private Date getEndDate(Component comp) {
+        DtEnd dtEnd = (DtEnd) comp.getProperties().getProperty(Property.DTEND);
+        // No DTEND? No problem, we'll use the DURATION if present.
+        if (dtEnd == null) {
+            Date dtStart = getStartDate(comp);
+            Duration duration = (Duration) comp.getProperties().getProperty(
+                    Property.DURATION);
+            if (duration != null) {
+                dtEnd = new DtEnd(Dates.getInstance(duration.getDuration()
+                        .getTime(dtStart), dtStart));
+            }
+        }
+        return (dtEnd != null) ? dtEnd.getDate() : null;
+    }
+    
     private Calendar createExpanded(OutputFilter filter) {
 
         // Create a new calendar with the same top-level properties as this one

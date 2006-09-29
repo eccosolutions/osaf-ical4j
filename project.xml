@@ -23,7 +23,7 @@
     <artifactId>ical4j-osaf</artifactId>
     
     <name>ical4j</name>
-    <currentVersion>0.9.18-20060928</currentVersion>
+    <currentVersion>0.9.18-20060929</currentVersion>
     <inceptionYear>2005</inceptionYear>
     <package>net.fortuna.ical4j.*</package>
     <description>Java library used to read and write iCalendar data streams as defined in RFC2445.</description>
