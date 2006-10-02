@@ -15,7 +15,6 @@
  */
 package net.fortuna.ical4j.model;
 
-import java.text.ParseException;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.TreeSet;
@@ -67,7 +66,7 @@ public class InstanceList extends HashMap {
             addOverride(comp);
         }
     }
-
+    
     /**
      * Add a master component if it falls within the specified time range.
      * 
@@ -185,15 +184,23 @@ public class InstanceList extends HashMap {
      * Add an override component if it falls within the specified time range.
      * 
      * @param comp
+     * @return true if the override component modifies instance list and false
+     *         if the override component has no effect on instance list
      */
-    protected void addOverride(Component comp) {
+    public boolean addOverride(Component comp) {
 
+        boolean modified = false;
+
+        // Verify if component is an override
+        if (comp.getProperties().getProperty(Property.RECURRENCE_ID) == null)
+            return false;
+        
         // First check to see that the appropriate properties are present.
 
         // We need a DTSTART.
         Date dtstart = getStartDate(comp);
         if (dtstart == null)
-            return;
+            return false;
 
         // We need either DTEND or DURATION.
         Date dtend = getEndDate(comp);
@@ -218,7 +225,11 @@ public class InstanceList extends HashMap {
         String key = instance.getRid().toString();
 
         // Replace the master instance by adding this one
-        put(key, instance);
+        // only if it exists.
+        if(containsKey(key)) {
+            put(key, instance);
+            modified = true;
+        }
 
         // Handle THISANDFUTURE if present
         Range range = (Range) comp.getProperties().getProperty(
@@ -239,13 +250,32 @@ public class InstanceList extends HashMap {
             Dur newDuration = (timeShift ? new Dur(dtstart, dtend) : null);
 
             // Get a sorted list rids so we can identify the starting location
-            // for the override
+            // for the override.  The starting position will be the rid after
+            // the current rid, or in the case of no matching rid, the first
+            // rid that is greater than the current rid.
+            boolean containsKey = containsKey(key);
             TreeSet sortedKeys = new TreeSet(keySet());
             for (Iterator iter = sortedKeys.iterator(); iter.hasNext();) {
                 String ikey = (String) iter.next();
-                if (ikey.equals(key)) {
-                    while (iter.hasNext()) {
+                if (ikey.equals(key) || (!containsKey && ikey.compareTo(key)>0)) {
+                    
+                    if(containsKey && !iter.hasNext())
+                        continue;
+                    else if(containsKey)
                         ikey = (String) iter.next();
+                    
+                    boolean moreKeys = true;
+                    boolean firstMatch = true;
+                    while(moreKeys==true) {
+                        
+                        // The target key is already set for the first
+                        // iteration, so for all other iterations
+                        // get the next target key.
+                        if(firstMatch)
+                            firstMatch = false;
+                        else
+                            ikey = (String) iter.next();
+                        
                         Instance oldinstance = (Instance) get(ikey);
 
                         // Do not override an already overridden instance
@@ -279,10 +309,16 @@ public class InstanceList extends HashMap {
                                 originalstart, false, false);
                         remove(ikey);
                         put(newinstance.getRid().toString(), newinstance);
+                        modified = true;
+                        
+                        if(!iter.hasNext())
+                            moreKeys = false;
                     }
                 }
             }
         }
+        
+        return modified;
     }
 
     private Date getStartDate(Component comp) {

@@ -42,18 +42,15 @@ import net.fortuna.ical4j.model.component.VJournal;
 import net.fortuna.ical4j.model.component.VTimeZone;
 import net.fortuna.ical4j.model.component.VToDo;
 import net.fortuna.ical4j.model.filter.OutputFilter;
-import net.fortuna.ical4j.model.parameter.Range;
 import net.fortuna.ical4j.model.property.DateProperty;
 import net.fortuna.ical4j.model.property.DtEnd;
 import net.fortuna.ical4j.model.property.DtStart;
-import net.fortuna.ical4j.model.property.Duration;
 import net.fortuna.ical4j.model.property.ExDate;
 import net.fortuna.ical4j.model.property.ExRule;
 import net.fortuna.ical4j.model.property.RDate;
 import net.fortuna.ical4j.model.property.RRule;
 import net.fortuna.ical4j.model.property.RecurrenceId;
 import net.fortuna.ical4j.model.property.XProperty;
-import net.fortuna.ical4j.util.Dates;
 import net.fortuna.ical4j.util.PropertyValidator;
 
 /**
@@ -205,7 +202,8 @@ public class Calendar implements Serializable {
         }  
         // If limit of recurrence set is required, we have to remove those
         // overriden components in recurring components that do not
-        // overlap the given time period.
+        // overlap the given time period.  Create a new calendar in order
+        // to preserve the original.
         else if(filter.getLimit() != null) {
             calendar = createLimitedRecurrence(filter);
         }
@@ -238,6 +236,9 @@ public class Calendar implements Serializable {
         Calendar newCal = new Calendar();
         newCal.getProperties().addAll(getProperties());
        
+        InstanceList instances = new InstanceList();
+        ComponentList overrides = new ComponentList();
+        
         // Limit range
         Period period = filter.getLimit();
         
@@ -251,16 +252,12 @@ public class Calendar implements Serializable {
                 // Add master component to result Calendar
                 if (comp.getProperties().getProperty(Property.RECURRENCE_ID) == null) {
                     newCal.getComponents().add(comp);
+                    // seed the InstanceList with master component
+                    instances.addComponent(comp, period.getStart(), period.getEnd());
                 }
-                // Add override component if in the limit range
-                else if(isOverrideInRange(comp,period)) {
-                    newCal.getComponents().add(comp);
-                    // TODO: What about overlapping THISANDFUTURE??
-                    // If there is an override inside the range soley because
-                    // of THISANDFUTURE, should that override be
-                    // removed if another THISANDFUTURE override
-                    // occurs after the previous one, but still only
-                    // in the range becuase of THISANDFUTURE.
+                // Keep track of overrides, we'll process later
+                else {
+                    overrides.add(comp);
                 }
             } 
             // Add all other components
@@ -269,80 +266,15 @@ public class Calendar implements Serializable {
             }
         }
         
+        // Add override components to InstanceList.
+        // Only add override if it changes anything about the InstanceList.
+        for (Iterator iterator = overrides.iterator(); iterator.hasNext();) {
+            Component comp = (Component) iterator.next();
+            if(instances.addOverride(comp)==true)
+                newCal.getComponents().add(comp);
+        }
+        
         return newCal;
-    }
-    
-    /**
-     * Determine if override component occurs within the
-     * given time range.
-     * @param comp
-     * @param period
-     * @return
-     */
-    private boolean isOverrideInRange(Component comp, Period period) {
-        // We need a DTSTART.
-        Date dtstart = getStartDate(comp);
-        if (dtstart == null)
-            return false;
-
-        // We need either DTEND or DURATION.
-        Date dtend = getEndDate(comp);
-        if (dtend == null) {
-            Dur duration;
-            if (dtstart instanceof DateTime) {
-                // Its an timed event with no duration
-                duration = new Dur(0, 0, 0, 0);
-            } else {
-                // Its an all day event so duration is one day
-                duration = new Dur(1, 0, 0, 0);
-            }
-            dtend = Dates.getInstance(duration.getTime(dtstart), dtstart);
-        }
-          
-        // Handle THISANDFUTURE
-        // NOTE: An overap is assumed if dtend is before the limit
-        //       start date and THISANDFUTURE is present. We should
-        //       really expand THISANDFUTURE and verify that an instance
-        //       ocurs in the limit range before assuming overlap.
-        Range range = (Range) comp.getProperties().getProperty(
-                Property.RECURRENCE_ID).getParameters().getParameter(
-                Parameter.RANGE);
-        
-        boolean hasThisAndFuture = Range.THISANDFUTURE.equals(range);
-        
-        // Test if [start,end] does not overlap given period
-        // Case 1, override start is after end of period we care about
-        if(dtstart.after(period.getEnd()))
-            return false;
-        
-        // Case 2, override end is before start of period we care about
-        // AND there is no THISANDFUTURE present
-        if(dtend.before(period.getStart()) && !hasThisAndFuture)
-            return false;
-        
-        // otherwise there is overlap
-        return true;
-    }
-    
-    private Date getStartDate(Component comp) {
-        DtStart prop = (DtStart) comp.getProperties().getProperty(
-                Property.DTSTART);
-        return (prop != null) ? prop.getDate() : null;
-    }
-
-    private Date getEndDate(Component comp) {
-        DtEnd dtEnd = (DtEnd) comp.getProperties().getProperty(Property.DTEND);
-        // No DTEND? No problem, we'll use the DURATION if present.
-        if (dtEnd == null) {
-            Date dtStart = getStartDate(comp);
-            Duration duration = (Duration) comp.getProperties().getProperty(
-                    Property.DURATION);
-            if (duration != null) {
-                dtEnd = new DtEnd(Dates.getInstance(duration.getDuration()
-                        .getTime(dtStart), dtStart));
-            }
-        }
-        return (dtEnd != null) ? dtEnd.getDate() : null;
     }
     
     private Calendar createExpanded(OutputFilter filter) {
@@ -405,6 +337,8 @@ public class Calendar implements Serializable {
             Instance instance = (Instance) instances.get(ikey);
 
             // Make sure this instance is within the requested range
+            // FIXME: Need to handle floating date/times.  Right now
+            // floating times will use the server timezone.
             if ((filter.getExpand().getStart().compareTo(instance.getEnd()) >= 0)
                     || (filter.getExpand().getEnd().compareTo(
                             instance.getStart()) <= 0))
