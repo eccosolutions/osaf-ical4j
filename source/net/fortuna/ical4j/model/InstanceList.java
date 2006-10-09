@@ -15,9 +15,11 @@
  */
 package net.fortuna.ical4j.model;
 
+import java.text.ParseException;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.TreeSet;
+
 
 import net.fortuna.ical4j.model.parameter.Range;
 import net.fortuna.ical4j.model.parameter.Value;
@@ -44,6 +46,8 @@ import net.fortuna.ical4j.util.Dates;
 public class InstanceList extends HashMap {
 
     private static final long serialVersionUID = 1838360990532590681L;
+    private boolean isUTC = false;
+    private TimeZone timezone = null;
     
     public InstanceList() {
         super();
@@ -68,6 +72,40 @@ public class InstanceList extends HashMap {
     }
     
     /**
+     * @return if the InstanceList generates instances in UTC format.
+     */
+    public boolean isUTC() {
+        return isUTC;
+    }
+
+    /**
+     * Instruct the InstanceList to generate instances in UTC time periods.
+     * If set to false, InstanceList will generate floating time instances
+     * for events with floating date/times.
+     * @param isUTC
+     */
+    public void setUTC(boolean isUTC) {
+        this.isUTC = isUTC;
+    }
+    
+    /**
+     * @return timezone used to convert floating times to UTC.  Only
+     * used if isUTC is set to true.
+     */
+    public TimeZone getTimezone() {
+        return timezone;
+    }
+
+    /**
+     * Set the timezone to use when converting floating times to
+     * UTC.  Only used if isUTC is set to true.
+     * @param timezone
+     */
+    public void setTimezone(TimeZone timezone) {
+        this.timezone = timezone;
+    }
+
+    /**
      * Add a master component if it falls within the specified time range.
      * 
      * @param comp
@@ -81,7 +119,12 @@ public class InstanceList extends HashMap {
         if (start == null) {
             return;
         }
-
+        
+        // Convert to UTC if needed
+        if(start instanceof DateTime)
+            start = convertToUTCIfNecessary((DateTime) start);
+        
+        
         Dur duration = null;
         Date end = getEndDate(comp);
         if (end == null) {
@@ -93,9 +136,12 @@ public class InstanceList extends HashMap {
                 duration = new Dur(1, 0, 0, 0);
             }
             end = Dates.getInstance(duration.getTime(start), start);
-        } else
+        } else {
+            // Convert to UTC if needed
+            if(end instanceof DateTime)
+                end = convertToUTCIfNecessary((DateTime) end);
             duration = new Dur(start, end);
-        
+        }
         // Always add first instance if included in range..
         if (start.before(rangeEnd)) {
             Instance instance = new Instance(comp, start, end);
@@ -202,6 +248,10 @@ public class InstanceList extends HashMap {
         if (dtstart == null)
             return false;
 
+        // Convert to UTC if needed
+        if(dtstart instanceof DateTime)
+            dtstart = convertToUTCIfNecessary((DateTime) dtstart);
+        
         // We need either DTEND or DURATION.
         Date dtend = getEndDate(comp);
         if (dtend == null) {
@@ -214,10 +264,17 @@ public class InstanceList extends HashMap {
                 duration = new Dur(1, 0, 0, 0);
             }
             dtend = Dates.getInstance(duration.getTime(dtstart), dtstart);
+        } else {
+            // Convert to UTC if needed
+            if(dtend instanceof DateTime)
+                dtend = convertToUTCIfNecessary((DateTime) dtend);
         }
 
         // Now create the map entry
         Date riddt = getReccurrenceId(comp);
+        if(riddt instanceof DateTime)
+            riddt = convertToUTCIfNecessary((DateTime) riddt);
+        
         boolean future = getRange(comp);
 
         Instance instance = new Instance(comp, dtstart, dtend, riddt, true,
@@ -355,5 +412,38 @@ public class InstanceList extends HashMap {
             return false;
         Parameter range = rid.getParameters().getParameter(Parameter.RANGE);
         return (range != null) && "THISANDFUTURE".equals(range.getValue());
+    }
+    
+    private DateTime convertToUTCIfNecessary(DateTime date) {
+        // If date is not UTC and InstanceList is configured
+        // to convert to UTC, then convert time to UTC
+        if(!date.isUtc() && isUTC) {
+            // If there is a timezone in the time, then use that
+            if(date.getTimeZone()!=null) {
+                try {
+                    DateTime newDT = new DateTime(date.toString(),date.getTimeZone());
+                    newDT.setUtc(true);
+                    return newDT;
+                } catch (ParseException e) {
+                    // shouldnt occur
+                }
+            }
+            // Otherwise use timezone that InstanceList is configured
+            // with, or use the system default.
+            else {
+                try {
+                    DateTime newDT = null;
+                    if(timezone == null)
+                        newDT = new DateTime(date.toString());
+                    else
+                        newDT = new DateTime(date.toString(),timezone);
+                    newDT.setUtc(true);
+                    return newDT;
+                } catch (ParseException e) {
+                   // shouldn't occur
+                }
+            }    
+        }
+        return date;
     }
 }
