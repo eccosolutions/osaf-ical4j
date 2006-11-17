@@ -293,4 +293,18 @@ public class VTimeZone extends Component {
         }
         return latestObservance;
     }
+
+    
+    /* (non-Javadoc)
+     * @see net.fortuna.ical4j.model.Component#copySubComponents()
+     */
+    protected ComponentList copySubComponents() {
+        ComponentList subs = new ComponentList();
+        for (Iterator it = observances.iterator(); it.hasNext();) {
+            Component comp = (Component) it.next();
+            subs.add(comp.copy());
+        }
+        
+        return subs;
+    }
 }

@@ -663,4 +663,17 @@ public class VEvent extends Component {
         return (RecurrenceId) getProperties().getProperty(Property.RECURRENCE_ID);
     }
 
+    
+    /* (non-Javadoc)
+     * @see net.fortuna.ical4j.model.Component#copySubComponents()
+     */
+    protected ComponentList copySubComponents() {
+        ComponentList subs = new ComponentList();
+        for (Iterator it = alarms.iterator(); it.hasNext();) {
+            Component comp = (Component) it.next();
+            subs.add(comp.copy());
+        }
+        
+        return subs;
+    }
 }

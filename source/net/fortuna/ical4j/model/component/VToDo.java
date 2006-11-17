@@ -365,4 +365,17 @@ public class VToDo extends Component {
     public final Uid getUid() {
         return (Uid) getProperties().getProperty(Property.UID);
     }
+    
+    /* (non-Javadoc)
+     * @see net.fortuna.ical4j.model.Component#copySubComponents()
+     */
+    protected ComponentList copySubComponents() {
+        ComponentList subs = new ComponentList();
+        for (Iterator it = alarms.iterator(); it.hasNext();) {
+            Component comp = (Component) it.next();
+            subs.add(comp.copy());
+        }
+        
+        return subs;
+    }
 }
