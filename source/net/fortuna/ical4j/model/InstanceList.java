@@ -142,8 +142,9 @@ public class InstanceList extends HashMap {
                 end = convertToUTCIfNecessary((DateTime) end);
             duration = new Dur(start, end);
         }
+        
         // Always add first instance if included in range..
-        if (start.before(rangeEnd)) {
+        if (start.before(rangeEnd) && end.after(rangeStart)) {
             Instance instance = new Instance(comp, start, end);
             put(instance.getRid().toString(), instance);
         }
