@@ -150,10 +150,10 @@ public abstract class DateProperty extends Property {
     public final void setTimeZone(final TimeZone timezone) {
         this.timezone = timezone;
         if (timezone != null) {
-            if (getDate() != null && !(getDate() instanceof DateTime)) {
-                throw new UnsupportedOperationException("TimeZone is not applicable to current value");
-            }
-            if (getDate() != null) {
+//            if (getDate() != null && !(getDate() instanceof DateTime)) {
+//                throw new UnsupportedOperationException("TimeZone is not applicable to current value");
+//            }
+            if (getDate() != null && getDate() instanceof DateTime) {
                 ((DateTime) getDate()).setTimeZone(timezone);
             }
             getParameters().remove(getParameters().getParameter(Parameter.TZID));
@@ -175,10 +175,10 @@ public abstract class DateProperty extends Property {
      * @param utc
      */
     public final void setUtc(final boolean utc) {
-        if (getDate() != null && !(getDate() instanceof DateTime)) {
-            throw new UnsupportedOperationException("UTC time is not applicable to current value");
-        }
-        if (getDate() != null) {
+//        if (getDate() != null && !(getDate() instanceof DateTime)) {
+//            throw new UnsupportedOperationException("UTC time is not applicable to current value");
+//        }
+        if (getDate() != null && getDate() instanceof DateTime) {
             ((DateTime) getDate()).setUtc(utc);
         }
         getParameters().remove(getParameters().getParameter(Parameter.TZID));
