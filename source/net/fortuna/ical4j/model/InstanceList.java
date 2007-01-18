@@ -144,7 +144,9 @@ public class InstanceList extends HashMap {
         }
         
         // Always add first instance if included in range..
-        if (start.before(rangeEnd) && end.after(rangeStart)) {
+        if (start.before(rangeEnd) && 
+                (end.after(rangeStart) || end.equals(rangeStart))) {
+         
             Instance instance = new Instance(comp, start, end);
             put(instance.getRid().toString(), instance);
         }
